@@ -33,3 +33,10 @@ transcribed by the adapter configured with `QWEN_ADAPTER_PATH`; use
 `QWEN_MAX_IMAGE_TOKENS=512` if the adapter was trained with that image size.
 The single-expression Qwen endpoint remains available at
 `/api/notes/convert-expression`.
+
+# DATABASE
+
+Used to store user information like username and password in xml
+```
+pip install defusedxml
+```

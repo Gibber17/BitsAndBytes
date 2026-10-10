@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import notes, food
+from services import auth
 
 app = FastAPI(title="StudyFuel API")
 
@@ -16,6 +17,7 @@ app.add_middleware(
 
 app.include_router(notes.router, prefix="/api/notes", tags=["Notes"])
 app.include_router(food.router, prefix="/api/food", tags=["Food"])
+app.include_router(auth.router)
 
 
 @app.get("/health")
