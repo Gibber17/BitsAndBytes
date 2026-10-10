@@ -10,7 +10,7 @@ __pycache__/
 mathwriting-2024/*
 !mathwriting-2024/train.py
 mathwriting-2024.tgz
-venv/
-
-# Local model adapters and checkpoints
-qwen25vl-3b-mathwriting*/
+venv
+qwen25vl-3b-mathwriting-hackathon
+/backend/users.xml
+/backend/users.tmp
