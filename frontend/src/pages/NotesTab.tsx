@@ -1,9 +1,6 @@
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
 import { convertNotes } from "../lib/api";
+import LatexPreview from "../components/LatexPreview";
 
 export default function NotesTab() {
   const [file, setFile] = useState<File | null>(null);
@@ -59,15 +56,7 @@ export default function NotesTab() {
       </button>
 
       <h2>Preview</h2>
-      {/* TODO(style): preview box */}
-      <div>
-        <ReactMarkdown
-          remarkPlugins={[remarkMath]}
-          rehypePlugins={[rehypeKatex]}
-        >
-          {latex}
-        </ReactMarkdown>
-      </div>
+      <LatexPreview latex={latex} />
     </div>
   );
 }
