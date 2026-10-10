@@ -1,11 +1,15 @@
+from dotenv import load_dotenv
+
+load_dotenv()  # Load API keys before importing services.
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import notes, food
+from routers import food, notes
 
 app = FastAPI(title="StudyFuel API")
 
-# Allow your local React frontend to communicate with FastAPI.
+# Allow the local React frontend to communicate with FastAPI.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
