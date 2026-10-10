@@ -6,12 +6,32 @@ import LofiTab from "./pages/LofiTab";
 import FoodTab from "./pages/FoodTab";
 
 function App() {
-  // Which page is showing. "dashboard" means you land on the dashboard first.
+  const [view, setView] = useState<View>("app");
   const [tab, setTab] = useState<Tab>("dashboard");
 
+  // Auth & Landing screens rendered without sidebar
+  if (view === "landing") {
+    return (
+      <Landing
+        onGetStarted={() => setView("app")}
+        onLogin={() => setView("login")}
+        onSignUp={() => setView("signup")}
+      />
+    );
+  }
+
+  if (view === "login") return <Login />;
+  if (view === "signup") return <SignUp />;
+
+  // Main application view with Sidebar
   return (
     <div className="flex min-h-screen flex-wrap bg-[#F7DCF9]">
-      <Sidebar active={tab} onNavigate={setTab} userName="Nora" userEmail="[SCHOOL EMAIL]" />
+      <Sidebar
+        active={tab}
+        onNavigate={setTab}
+        userName="Nora"
+        userEmail="nora@example.com"
+      />
 
       <main className="min-w-0 flex-[999_1_560px]">
         {tab === "dashboard" && (
