@@ -1,147 +1,89 @@
-import { useEffect, useState } from 'react'
-import 'katex/dist/katex.min.css'
-import { convertNotes } from './lib/api'
-import LatexPreview from './components/LatexPreview'
-import './App.css'
+import { useState } from "react";
+import Landing from "./pages/Landing";
+import Sidebar, { type Tab } from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
+import NotesTab from "./pages/NotesTab";
+import LofiTab from "./pages/LofiTab";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
-  const [file, setFile] = useState<File | null>(null)
-  const [notes, setNotes] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [imageUrl, setImageUrl] = useState('')
-
-  useEffect(() => {
-    if (!file) {
-      setImageUrl('')
-      return
-    }
-    const url = URL.createObjectURL(file)
-    setImageUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [file])
-
-  async function handleConvert() {
-    if (!file) return
-    setLoading(true)
-    setError('')
-    setNotes('')
-    setCopied(false)
-    try {
-      setNotes(await convertNotes(file))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Conversion failed. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleCopy() {
-    await navigator.clipboard.writeText(notes)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1600)
-  }
+  // Which page is showing. "dashboard" means you land on the dashboard first.
+  const [tab, setTab] = useState<Tab>("dashboard");
 
   function handleSavePdf() {
     window.print()
   }
 
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="Ink to LaTeX home">
-          <span className="brand-mark">∑</span>
-          <span>Ink to LaTeX</span>
-        </a>
-        <span className="top-note">Local full-page notes recognition</span>
-      </header>
-
-      <section className="intro" id="top">
-        <p className="eyebrow">FROM PAPER TO PUBLISHABLE MATH</p>
-        <h1>Your handwritten math,<br /><span>ready for LaTeX.</span></h1>
-        <p className="intro-copy">
-          Upload a full page. Pix2Text detects handwritten text and math, then returns editable notes with LaTeX equations.
-        </p>
-      </section>
-
-      <section className="workspace" aria-label="Math conversion workspace">
-        <div className="panel input-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="step-label">STEP 1</p>
-              <h2>Choose an image</h2>
-            </div>
-            {file && <span className="file-kind">{file.name}</span>}
-          </div>
-
-          <label className={`upload-area ${imageUrl ? 'has-image' : ''}`}>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(event) => {
-                setFile(event.currentTarget.files?.[0] ?? null)
-                setError('')
-              }}
+    // TODO(style): layout/container
+    <div>
+      {view === "landing" ? (
+        <Landing
+          onGetStarted={() => setView("notes")}
+          onLogin={() => setView("login")}
+          onSignUp={() => setView("signup")}
+        />
+      ) : (
+        <>
+          <h1>BitsAndBytes</h1>
+          <nav>
+            <button className="underline cursor-pointer" onClick={() => setView("landing")}>Home</button>
+            <button className="underline cursor-pointer" onClick={() => setView("notes")} disabled={view === "notes"}>
+              Notes to LaTeX
+            </button>
+            <button className="underline cursor-pointer" onClick={() => setView("food")} disabled={view === "food"}>
+              Find Food
+            </button>
+            <button className="underline cursor-pointer" onClick={() => setView("dashboard")} disabled={view === "dashboard"}>
+              Dashboard
+            </button>
+            <button className="underline cursor-pointer" onClick={() => setView("lofi")} disabled={view === "lofi"}>
+              Lofi Music
+            </button>
+            {/* TODO(style): push auth buttons to the right side of the nav */}
+            <button className="underline cursor-pointer" onClick={() => setView("login")} disabled={view === "login"}>
+              Log in
+            </button>
+            <button className="underline cursor-pointer" onClick={() => setView("signup")}>
+              Sign up
+            </button>
+          </nav>
+          {view === "notes" && <NotesTab />}
+          {view === "food" && <FoodTab />}
+          {view === "login" && <Login />}
+          {view === "signup" && <SignUp />}
+          {view === "dashboard" && (
+            <Dashboard
+              onOpenNotes={() => setView("notes")}
+              onOpenFood={() => setView("food")}
+              onOpenLofi={() => setView("lofi")}
             />
-            {imageUrl ? (
-              <img className="source-image" src={imageUrl} alt="Selected handwritten math" />
-            ) : (
-              <span className="upload-prompt">
-                <span className="upload-icon" aria-hidden="true">↑</span>
-                <strong>Choose a photo or scan</strong>
-                <span>PNG, JPG, or WebP · up to 10 MB</span>
-              </span>
-            )}
-          </label>
-          <p className="hint">Use a clear, upright photo with the full page in focus. The first run may take longer while OCR models load.</p>
-
-          <button className="convert-button" type="button" onClick={handleConvert} disabled={!file || loading}>
-            {loading ? <><span className="spinner" /> Reading the page…</> : <>Convert full page <span aria-hidden="true">→</span></>}
-          </button>
-          {error && <p className="error-message" role="alert">{error}</p>}
-        </div>
-
-        <div className="panel result-panel" aria-live="polite">
-          <div className="panel-heading">
-            <div>
-              <p className="step-label">STEP 2</p>
-              <h2>Review the result</h2>
-            </div>
-            {notes && (
-              <div className="result-actions">
-                <button className="copy-button" onClick={handleCopy} type="button">{copied ? 'Copied' : 'Copy notes'}</button>
-                <button className="copy-button" onClick={handleSavePdf} type="button">Save PDF</button>
-              </div>
-            )}
-          </div>
-
-          <div className={`math-preview ${notes ? '' : 'empty-preview'}`}>
-            {notes ? (
-              <>
-                <div className="print-title">
-                  <h1>{file?.name.replace(/\.[^.]+$/, '') || 'Math Notes'}</h1>
-                  <p>Recognized handwritten notes</p>
-                </div>
-                <div className="katex-output"><LatexPreview latex={notes} /></div>
-              </>
-            ) : (
-              <span>Your recognized notes will appear here.</span>
-            )}
-          </div>
-
-          {notes && (
-            <label className="latex-field">
-              <span>Notes with LaTeX · editable</span>
-              <textarea value={notes} onChange={(event) => setNotes(event.currentTarget.value)} spellCheck={false} />
-            </label>
           )}
-        </div>
-      </section>
+          {/* No {view === "lofi" && <LofiTab />} here; see below */}
+        </>
+      )}
+    <div className="flex min-h-screen flex-wrap bg-[#F7DCF9]">
+      <Sidebar active={tab} onNavigate={setTab} userName="Nora" userEmail="[SCHOOL EMAIL]" />
 
-      <footer className="footer-note">Edit the recognized notes, preview the math, and copy the combined result.</footer>
-    </main>
-  )
+      <main className="min-w-0 flex-[999_1_560px]">
+        {tab === "dashboard" && (
+          <Dashboard
+            onOpenNotes={() => setTab("notes")}
+            onOpenFood={() => setTab("food")}
+            onOpenLofi={() => setTab("lofi")}
+          />
+        )}
+        {tab === "notes" && <NotesTab />}
+        {tab === "lofi" && <LofiTab />}
+        {tab === "food" && (
+          // TODO: replace with the map page once it exists
+          <p className="p-10 text-[#3E1230]">Map coming soon.</p>
+        )}
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
