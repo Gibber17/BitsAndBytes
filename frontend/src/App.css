@@ -264,6 +264,15 @@
   background: #f4f8f4;
 }
 
+.result-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.print-title {
+  display: none;
+}
+
 .math-preview {
   min-height: 268px;
   display: grid;
@@ -357,5 +366,87 @@
   .math-preview {
     min-height: 220px;
     height: 220px;
+  }
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 0.7in;
+  }
+
+  :root,
+  body {
+    min-width: 0;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .topbar,
+  .intro,
+  .input-panel,
+  .footer-note,
+  .panel-heading,
+  .latex-field {
+    display: none !important;
+  }
+
+  .app-shell {
+    width: auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  .workspace {
+    display: block;
+  }
+
+  .result-panel {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .math-preview {
+    min-height: 0;
+    display: block;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #fff !important;
+  }
+
+  .print-title {
+    display: block;
+    margin: 0 0 24pt;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  .print-title h1 {
+    margin: 0 0 4pt;
+    font-size: 20pt;
+    font-weight: 600;
+  }
+
+  .print-title p {
+    margin: 0;
+    color: #555;
+    font-size: 9pt;
+  }
+
+  .katex-output {
+    max-width: none;
+    overflow: visible;
+    padding: 0;
+    background: transparent;
+    font-size: 11pt;
+  }
+
+  .katex-display {
+    overflow: visible !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
