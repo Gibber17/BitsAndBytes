@@ -78,7 +78,7 @@ export default function Sidebar({ active, onNavigate, userName, userEmail }: Pro
         <span className="font-['League_Spartan'] text-[22px] font-bold leading-none">
           Knight
           <br />
-          Space Hub
+          Study Space
         </span>
       </button>
 
