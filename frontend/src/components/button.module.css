@@ -1,0 +1,41 @@
+
+@layer components {
+    .button {
+      @apply inline-flex min-h-12 cursor-pointer items-center
+             justify-center gap-2.5 rounded-full px-6
+             font-bold transition-colors;
+    }
+  
+    .primary {
+      @apply bg-[#3E1230] text-[#FDF8F2]
+             hover:bg-[#8A2A6E];
+    }
+  
+    .secondary {
+      @apply border border-[#441828] bg-transparent
+             text-[#441828];
+    }
+  
+    .small {
+      @apply min-h-10 px-4 text-sm;
+    }
+  
+    .medium {
+      @apply min-h-12 px-6 text-base;
+    }
+  
+    .large {
+      @apply min-h-14 px-8 text-lg;
+    }
+  
+    .fullWidth {
+      @apply w-full;
+    }
+  
+    .arrow {
+      @apply inline-flex items-center justify-center;
+      font-size: 24px;
+    }
+  }
+  
+  
