@@ -15,7 +15,7 @@ MODEL_ID = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-VL-3B-Instruct")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ADAPTER_DIR = Path(os.getenv(
     "QWEN_ADAPTER_PATH",
-    str(PROJECT_ROOT / "qwen25vl-3b-mathwriting"),
+    str(PROJECT_ROOT / "qwen25vl-3b-mathwriting-hackathon"),
 ))
 MAX_IMAGE_TOKENS = int(os.getenv("QWEN_MAX_IMAGE_TOKENS", "256"))
 MAX_NEW_TOKENS = int(os.getenv("QWEN_MAX_NEW_TOKENS", "256"))
