@@ -1,9 +1,9 @@
 import { useState } from "react";
-import Landing from "./pages/landing";
+import Landing from "./pages/Landing";
 import NotesTab from "./pages/NotesTab";
 import FoodTab from "./pages/FoodTab";
 import LofiTab from "./pages/LofiTab";
-import Login from "./pages/login";
+import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 
@@ -42,7 +42,7 @@ export default function App() {
             <button className="underline cursor-pointer" onClick={() => setView("login")} disabled={view === "login"}>
               Log in
             </button>
-            <button className="underline cursor-pointer" onClick={() => setView("signup")} disabled={view === "signup"}>
+            <button className="underline cursor-pointer" onClick={() => setView("signup")}>
               Sign up
             </button>
           </nav>
