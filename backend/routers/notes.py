@@ -1,7 +1,10 @@
+import logging
+
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from services.ai_service import convert_image_to_latex
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -26,6 +29,7 @@ async def convert_notes(file: UploadFile = File(...)):
     try:
         latex = await convert_image_to_latex(image_bytes)
     except Exception:
+        logger.exception("LaTeX image conversion failed")
         raise HTTPException(
             status_code=502,
             detail="Note conversion failed. Please try again."

@@ -1,70 +1,142 @@
-import { useState } from "react";
-import Landing from "./pages/landing";
-import NotesTab from "./pages/NotesTab";
-import FoodTab from "./pages/FoodTab";
-import LofiTab from "./pages/LofiTab";
-import Login from "./pages/login";
-import SignUp from "./pages/SignUp";
-import Dashboard from "./pages/Dashboard";
+import { useEffect, useMemo, useState } from 'react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
+import { convertNotes } from './lib/api'
+import './App.css'
 
-type View = "landing" | "notes" | "food" | "lofi" | "dashboard" | "login" | "signup";
+function App() {
+  const [file, setFile] = useState<File | null>(null)
+  const [latex, setLatex] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [imageUrl, setImageUrl] = useState('')
 
-export default function App() {
-  const [view, setView] = useState<View>("landing");
+  useEffect(() => {
+    if (!file) {
+      setImageUrl('')
+      return
+    }
+    const url = URL.createObjectURL(file)
+    setImageUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  const renderedLatex = useMemo(() => {
+    if (!latex.trim()) return ''
+    return katex.renderToString(latex, {
+      displayMode: true,
+      throwOnError: false,
+      strict: 'ignore',
+      trust: false,
+    })
+  }, [latex])
+
+  async function handleConvert() {
+    if (!file) return
+    setLoading(true)
+    setError('')
+    setLatex('')
+    setCopied(false)
+    try {
+      setLatex(await convertNotes(file))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Conversion failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(latex)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1600)
+  }
 
   return (
-    // TODO(style): layout/container
-    <div>
-      {view === "landing" ? (
-        <Landing
-          onGetStarted={() => setView("notes")}
-          onLogin={() => setView("login")}
-          onSignUp={() => setView("signup")}
-        />
-      ) : (
-        <>
-          <h1>BitsAndBytes</h1>
-          <nav>
-            <button className="underline cursor-pointer" onClick={() => setView("landing")}>Home</button>
-            <button className="underline cursor-pointer" onClick={() => setView("notes")} disabled={view === "notes"}>
-              Notes to LaTeX
-            </button>
-            <button className="underline cursor-pointer" onClick={() => setView("food")} disabled={view === "food"}>
-              Find Food
-            </button>
-            <button className="underline cursor-pointer" onClick={() => setView("dashboard")} disabled={view === "dashboard"}>
-              Dashboard
-            </button>
-            <button className="underline cursor-pointer" onClick={() => setView("lofi")} disabled={view === "lofi"}>
-              Lofi Music
-            </button>
-            {/* TODO(style): push auth buttons to the right side of the nav */}
-            <button className="underline cursor-pointer" onClick={() => setView("login")} disabled={view === "login"}>
-              Log in
-            </button>
-            <button className="underline cursor-pointer" onClick={() => setView("signup")} disabled={view === "signup"}>
-              Sign up
-            </button>
-          </nav>
-          {view === "notes" && <NotesTab />}
-          {view === "food" && <FoodTab />}
-          {view === "login" && <Login />}
-          {view === "signup" && <SignUp />}
-          {view === "dashboard" && (
-            <Dashboard
-              onOpenNotes={() => setView("notes")}
-              onOpenFood={() => setView("food")}
-              onOpenLofi={() => setView("lofi")}
-            />
-          )}
-          {/* No {view === "lofi" && <LofiTab />} here; see below */}
-        </>
-      )}
+    <main className="app-shell">
+      <header className="topbar">
+        <a className="brand" href="#top" aria-label="Ink to LaTeX home">
+          <span className="brand-mark">∑</span>
+          <span>Ink to LaTeX</span>
+        </a>
+        <span className="top-note">Handwritten math recognizer</span>
+      </header>
 
-      {/* Always mounted so the music keeps playing; hidden unless on the lofi page */}
-      <div hidden={view !== "lofi"}>
-        <LofiTab />
-      </div>
-    </div>
-  );
+      <section className="intro" id="top">
+        <p className="eyebrow">FROM PAPER TO PUBLISHABLE MATH</p>
+        <h1>Your handwritten math,<br /><span>ready for LaTeX.</span></h1>
+        <p className="intro-copy">
+          Upload a clear photo of one expression. The model transcribes it, and KaTeX renders a live preview.
+        </p>
+      </section>
+
+      <section className="workspace" aria-label="Math conversion workspace">
+        <div className="panel input-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="step-label">STEP 1</p>
+              <h2>Choose an image</h2>
+            </div>
+            {file && <span className="file-kind">{file.name}</span>}
+          </div>
+
+          <label className={`upload-area ${imageUrl ? 'has-image' : ''}`}>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => {
+                setFile(event.currentTarget.files?.[0] ?? null)
+                setError('')
+              }}
+            />
+            {imageUrl ? (
+              <img className="source-image" src={imageUrl} alt="Selected handwritten math" />
+            ) : (
+              <span className="upload-prompt">
+                <span className="upload-icon" aria-hidden="true">↑</span>
+                <strong>Choose a photo or scan</strong>
+                <span>PNG, JPG, or WebP · up to 10 MB</span>
+              </span>
+            )}
+          </label>
+          <p className="hint">For best results, crop closely around one expression and keep the writing in focus.</p>
+
+          <button className="convert-button" type="button" onClick={handleConvert} disabled={!file || loading}>
+            {loading ? <><span className="spinner" /> Reading handwriting…</> : <>Convert to LaTeX <span aria-hidden="true">→</span></>}
+          </button>
+          {error && <p className="error-message" role="alert">{error}</p>}
+        </div>
+
+        <div className="panel result-panel" aria-live="polite">
+          <div className="panel-heading">
+            <div>
+              <p className="step-label">STEP 2</p>
+              <h2>Review the result</h2>
+            </div>
+            {latex && <button className="copy-button" onClick={handleCopy} type="button">{copied ? 'Copied' : 'Copy LaTeX'}</button>}
+          </div>
+
+          <div className={`math-preview ${latex ? '' : 'empty-preview'}`}>
+            {renderedLatex ? (
+              <div className="katex-output" dangerouslySetInnerHTML={{ __html: renderedLatex }} />
+            ) : (
+              <span>Your typeset expression will appear here.</span>
+            )}
+          </div>
+
+          {latex && (
+            <label className="latex-field">
+              <span>LaTeX source · editable</span>
+              <textarea value={latex} onChange={(event) => setLatex(event.currentTarget.value)} spellCheck={false} />
+            </label>
+          )}
+        </div>
+      </section>
+
+      <footer className="footer-note">The preview updates as you edit the LaTeX source.</footer>
+    </main>
+  )
 }
+
+export default App
