@@ -42,7 +42,7 @@ export default function FoodTab() {
         <option value="3">$$$</option>
       </select>
       {/* TODO(style): primary button + disabled state */}
-      <button onClick={handleSearch} disabled={!zip || loading}>
+      <button className="underline cursor-pointer" onClick={handleSearch} disabled={!zip || loading}>
         {loading ? "Searching..." : "Search"}
       </button>
 
