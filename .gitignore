@@ -1,4 +1,7 @@
 .env
-mathwriting-2024
+!mathwriting-2024/
+mathwriting-2024/*
+!mathwriting-2024/train.py
 mathwriting-2024.tgz
 venv
+qwen25vl-3b-mathwriting-hackathon
