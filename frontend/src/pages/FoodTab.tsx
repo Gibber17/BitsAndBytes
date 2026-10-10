@@ -29,6 +29,7 @@ export default function FoodTab() {
         value={zip}
         onChange={(e) => setZip(e.target.value)}
         placeholder="ZIP code"
+        maxLength={5}
       />
       <input
         value={cuisine}
@@ -40,9 +41,14 @@ export default function FoodTab() {
         <option value="1">$</option>
         <option value="2">$$</option>
         <option value="3">$$$</option>
+        <option value="4">$$$$</option>
       </select>
       {/* TODO(style): primary button + disabled state */}
-      <button className="underline cursor-pointer" onClick={handleSearch} disabled={!zip || loading}>
+      <button
+        className="underline cursor-pointer"
+        onClick={handleSearch}
+        disabled={!zip || loading}
+      >
         {loading ? "Searching..." : "Search"}
       </button>
 
@@ -51,11 +57,12 @@ export default function FoodTab() {
 
       {/* TODO(style): results grid */}
       <ul>
-        {results.map((p) => (
+        {results.map((p, index) => (
           // TODO(style): result card
-          <li key={p.name + p.address}>
+          <li key={`${p.name}-${p.address ?? "unknown"}-${p.url ?? index}`}>
             <h3>{p.name}</h3>
             <p>{p.address}</p>
+            {p.rating != null && <p>Rating: {p.rating}</p>}
             {/* TODO(style): make verified offers look clearly different from estimated prices */}
             <p>
               {p.verifiedOffer
@@ -63,7 +70,7 @@ export default function FoodTab() {
                 : p.price ?? "Price unavailable"}
             </p>
             {p.url && (
-              <a href={p.url} target="_blank" rel="noreferrer">
+              <a className="underline" href={p.url} target="_blank" rel="noreferrer">
                 View menu / offer
               </a>
             )}
