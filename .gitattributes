@@ -1,1 +1,2 @@
+qwen25vl-3b-mathwriting-hackathon filter=lfs diff=lfs merge=lfs -text
 qwen25vl-3b-mathwriting-hackathon/** filter=lfs diff=lfs merge=lfs -text
