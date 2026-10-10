@@ -3,6 +3,7 @@ import Sidebar, { type Tab } from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import NotesTab from "./pages/NotesTab";
 import LofiTab from "./pages/LofiTab";
+import FoodTab from "./pages/FoodTab";
 
 function App() {
   // Which page is showing. "dashboard" means you land on the dashboard first.
@@ -22,10 +23,7 @@ function App() {
         )}
         {tab === "notes" && <NotesTab />}
         {tab === "lofi" && <LofiTab />}
-        {tab === "food" && (
-          // TODO: replace with the map page once it exists
-          <p className="p-10 text-[#3E1230]">Map coming soon.</p>
-        )}
+        {tab === "food" && <FoodTab />}
       </main>
     </div>
   );

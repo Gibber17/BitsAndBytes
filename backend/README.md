@@ -1,3 +1,5 @@
+# Purpose of each file
+
 main.py: starts FastAPI and configures CORS.
 
 routers/notes.py: accepts image uploads.
@@ -9,3 +11,11 @@ services/ai_service.py: communicates with the AI model.
 services/places_service.py: communicates with your restaurant data provider.
 
 .env: holds API keys locally; never commit it to GitHub.
+
+# How to Run Backend
+
+Use the following commands:
+
+cd BitsAndBytes/backend
+.venv\Scripts\Activate.ps1
+uvicorn main:app --reload --port 8000
