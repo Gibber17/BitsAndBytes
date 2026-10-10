@@ -4,8 +4,9 @@ export async function convertNotes(file: File): Promise<string> {
   const form = new FormData();
   form.append("file", file); // field name must match your FastAPI param
   const res = await fetch(`${API}/api/notes/convert`, { method: "POST", body: form });
-  if (!res.ok) throw new Error(await res.text());
-  return (await res.json()).latex;
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail ?? "Page recognition failed.");
+  return body.latex;
 }
 
 export interface Place {

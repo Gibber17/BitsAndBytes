@@ -15,13 +15,15 @@ MODEL_ID = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-VL-3B-Instruct")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ADAPTER_DIR = Path(os.getenv(
     "QWEN_ADAPTER_PATH",
-    str(PROJECT_ROOT / "qwen25vl-3b-mathwriting"),
+    str(PROJECT_ROOT / "qwen25vl-3b-mathwriting-hackathon"),
 ))
-MAX_IMAGE_TOKENS = int(os.getenv("QWEN_MAX_IMAGE_TOKENS", "256"))
-MAX_NEW_TOKENS = int(os.getenv("QWEN_MAX_NEW_TOKENS", "256"))
+MAX_IMAGE_TOKENS = int(os.getenv("QWEN_MAX_IMAGE_TOKENS", "512"))
+MAX_NEW_TOKENS = int(os.getenv("QWEN_MAX_NEW_TOKENS", "512"))
 PROMPT = (
-    "Transcribe the handwritten mathematical expression as LaTeX. "
-    "Return only the LaTeX, with no explanation or delimiters."
+    "Transcribe only the handwritten mathematical content in this image as LaTeX. "
+    "Ignore dotted or ruled paper, page texture, and grading marks. Preserve the "
+    "relative layout of notes written to the right of an equation. Do not invent "
+    "symbols, numbers, or matrices. Return only LaTeX, with no explanation or delimiters."
 )
 _generation_lock = threading.Lock()
 
@@ -69,7 +71,10 @@ def _load_model():
     model.eval()
 
     processor = AutoProcessor.from_pretrained(
-        str(ADAPTER_DIR),
+        # The adapter directory is only a LoRA checkpoint. Its copied tokenizer
+        # metadata can be incompatible with newer Transformers releases; use
+        # the base model's matching processor/tokenizer instead.
+        MODEL_ID,
         min_pixels=256 * 28 * 28,
         max_pixels=MAX_IMAGE_TOKENS * 28 * 28,
     )
@@ -78,6 +83,15 @@ def _load_model():
 
 def _clean_latex(text: str) -> str:
     text = text.strip()
+    # Qwen sometimes interprets dotted notebook paper as a 1-to-9 matrix.
+    text = re.sub(
+        r"\\begin\{matrix\}\s*1\s*&\s*2\s*&\s*3\s*\\\\\s*"
+        r"4\s*&\s*5\s*&\s*6\s*\\\\\s*"
+        r"7\s*&\s*8\s*&\s*9\s*\\end\{matrix\}\s*(?:\\\\)?",
+        "",
+        text,
+    )
+    text = re.sub(r"(\\begin\{matrix\})\s*\\\\\s*", r"\1", text)
     text = re.sub(r"^```(?:latex|tex)?\s*|\s*```$", "", text, flags=re.IGNORECASE)
     text = text.strip()
     for left, right in (("$$", "$$"), (r"\[", r"\]"), (r"\(", r"\)")):
@@ -128,6 +142,11 @@ def _convert_sync(image_bytes: bytes) -> str:
     return latex
 
 
+def convert_image_to_latex_sync(image_bytes: bytes) -> str:
+    """Run Qwen inference synchronously for use by the hybrid page pipeline."""
+    return _convert_sync(image_bytes)
+
+
 async def convert_image_to_latex(image_bytes: bytes) -> str:
     """Run blocking GPU inference in a worker thread so FastAPI stays responsive."""
-    return await asyncio.to_thread(_convert_sync, image_bytes)
+    return await asyncio.to_thread(convert_image_to_latex_sync, image_bytes)
