@@ -1,3 +1,11 @@
+#API keys
+.env
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 .env
 !mathwriting-2024/
 mathwriting-2024/*

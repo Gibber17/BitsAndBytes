@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # first, so API keys are available to everything below
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,7 +18,7 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-app.include_router(notes.router, prefix="/api/notes", tags=["Notes"])
+# app.include_router(notes.router, prefix="/api/notes", tags=["Notes"])
 app.include_router(food.router, prefix="/api/food", tags=["Food"])
 app.include_router(auth.router)
 
