@@ -8,6 +8,10 @@ function App() {
   // Which page is showing. "dashboard" means you land on the dashboard first.
   const [tab, setTab] = useState<Tab>("dashboard");
 
+  function handleSavePdf() {
+    window.print()
+  }
+
   return (
     <div className="flex min-h-screen flex-wrap bg-[#F7DCF9]">
       <Sidebar active={tab} onNavigate={setTab} userName="Nora" userEmail="[SCHOOL EMAIL]" />
