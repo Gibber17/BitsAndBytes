@@ -1,3 +1,9 @@
+# Setup Notes
+If you do not have the npm package installed, please complete the following steps:
+
+cd BitsAndBytes/frontend
+npm install
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
