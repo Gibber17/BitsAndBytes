@@ -129,6 +129,7 @@ function App() {
       <Login
         onSuccess={handleAuthSuccess}
         onShowSignup={() => setView("signup")}
+        onBack={() => setView("landing")}
       />
     );
   }
@@ -138,6 +139,7 @@ function App() {
       <SignUp
         onSuccess={handleAuthSuccess}
         onShowLogin={() => setView("login")}
+        onBack={() => setView("landing")}
       />
     );
   }

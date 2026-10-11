@@ -1,5 +1,6 @@
 import { useState } from "react";
-import "../styles//Login.css";
+import "../styles/Login.css";
+import AuthBrandHome from "../components/AuthBrandHome";
 import { signInAccount, type AuthUser } from "../lib/api";
 
 interface Props {
@@ -41,6 +42,7 @@ export default function Login({ onSuccess, onShowSignup, onBack }: Props) {
   return (
     // TODO(style): centered card / container
     <div className="login-container">
+      {onBack && <AuthBrandHome onHome={onBack} />}
       <div className="login-left">
         <h2 className="login-title">Login</h2>
 
@@ -88,11 +90,6 @@ export default function Login({ onSuccess, onShowSignup, onBack }: Props) {
           </p>
         </form>
 
-        {onBack && (
-          <button type="button" className="auth-switch" onClick={onBack}>
-            ← Back to home
-          </button>
-        )}
       </div>
     </div>
   );
