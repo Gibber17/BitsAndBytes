@@ -7,6 +7,24 @@ import {
   type Place,
   type SavedRestaurant,
 } from "../lib/api";
+import { searchFood, type Place } from "../lib/api";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+
+// Leaflet marker icon fix for Vite
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+L.Marker.prototype.options.icon = L.icon({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 const ZIP_KEY = "knight.zip";
 const QUICK_CUISINES = ["Pizza", "Coffee", "Burgers", "Mexican", "Asian", "Dessert"];
@@ -26,7 +44,7 @@ function saveZip(z: string) {
   try {
     localStorage.setItem(ZIP_KEY, z);
   } catch {
-    /* storage unavailable; fine */
+    /* storage unavailable */
   }
 }
 
@@ -103,7 +121,6 @@ const inputClass =
 
 type ZipState = "detecting" | "ready" | "needed";
 
-// Pass `zip` from your app state if you have it: <FoodTab zip={user.zip} />
 export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   const [zip, setZip] = useState(() => (zipProp && isZip(zipProp) ? zipProp : readSavedZip()));
   const [zipState, setZipState] = useState<ZipState>(zip ? "ready" : "detecting");
@@ -140,7 +157,6 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     }
   }, [zipProp]);
 
-  // 1b. No ZIP yet: detect it from the browser's location (asks permission once)
   useEffect(() => {
     if (zip) return;
     let cancelled = false;
@@ -157,16 +173,13 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Wait a moment after typing a cuisine before searching
   useEffect(() => {
     const t = setTimeout(() => setDebouncedCuisine(cuisine.trim()), 400);
     return () => clearTimeout(t);
   }, [cuisine]);
 
-  // 3. Search automatically whenever the ZIP or a filter changes
   useEffect(() => {
     if (!zip) return;
     const id = ++requestId.current;
@@ -174,7 +187,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     setError("");
     searchFood({ zip, cuisine: debouncedCuisine, maxPrice })
       .then((data) => {
-        if (id !== requestId.current) return; // a newer search replaced this one
+        if (id !== requestId.current) return;
         setResults(data);
         setLoaded(true);
       })
@@ -200,7 +213,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   function pickCuisine(c: string) {
     const next = cuisine.toLowerCase() === c.toLowerCase() ? "" : c;
     setCuisine(next);
-    setDebouncedCuisine(next); // skip the typing delay for one-tap chips
+    setDebouncedCuisine(next);
   }
 
   async function toggleSavedRestaurant(place: Place) {
@@ -224,22 +237,16 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   }
 
   const showZipForm = zipState === "needed" || editingZip;
-  const showSkeleton = (zipState === "detecting" || loading) && results.length === 0 && !error;
 
   return (
     <div className="min-h-full bg-[#f6d9f7] px-4 pb-10 pt-5 text-sm text-[#43102f] sm:px-[31px]">
-      <h2 className="mb-2 text-[40px] font-bold leading-[1.1] tracking-tight">Food</h2>
-      <p className="mb-4 max-w-[350px] text-[12.5px] text-[#7a4c6c]">
-        Places to eat near you, with verified offers and estimated prices.
+      <h2 className="mb-2 text-[40px] font-bold leading-[1.1] tracking-tight">Food & Map</h2>
+      <p className="mb-4 max-w-[450px] text-[12.5px] text-[#7a4c6c]">
+        Explore local food spots near you with verified offers and interactive mapping.
       </p>
 
-      {/* Where we're searching */}
-      {zipState === "detecting" && (
-        <p className="mb-4 text-[12px] text-[#7a4c6c]" aria-live="polite">
-          Finding places near you…
-        </p>
-      )}
-
+      {/* ZIP Selection Header */}
+      {zipState === "detecting" && <p className="mb-4 text-[12px] text-[#7a4c6c]">Finding places near you…</p>}
       {zipState === "ready" && !editingZip && (
         <p className="mb-4 flex items-center gap-1.5 text-[12px] text-[#7a4c6c]">
           <PinIcon className="h-3.5 w-3.5 text-[#c86fb8]" />
@@ -257,109 +264,40 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
         </p>
       )}
 
-      {/* Fallback: only appears if we couldn't work out the ZIP, or the user taps "Change" */}
       {showZipForm && (
-        <form
-          onSubmit={submitZip}
-          className="mb-5 flex max-w-[520px] flex-wrap items-center gap-2 rounded-[28px] bg-[#fdf6ee] p-4"
-        >
-          <p className="w-full text-[12.5px] text-[#7a4c6c]">
-            {editingZip
-              ? "Enter a different ZIP code."
-              : "We couldn't detect your location. Enter your ZIP once and we'll remember it."}
-          </p>
+        <form onSubmit={submitZip} className="mb-5 flex max-w-[520px] flex-wrap items-center gap-2 rounded-[28px] bg-[#fdf6ee] p-4">
           <input
             value={zipDraft}
             onChange={(e) => setZipDraft(e.target.value.replace(/\D/g, ""))}
             placeholder="ZIP code"
             maxLength={5}
             inputMode="numeric"
-            aria-label="ZIP code"
             className={`${inputClass} w-[120px] bg-white`}
           />
-          <button
-            type="submit"
-            disabled={!isZip(zipDraft)}
-            className="h-11 rounded-full bg-[#43102f] px-6 text-[12.5px] font-bold text-white transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
-          >
+          <button type="submit" disabled={!isZip(zipDraft)} className="h-11 rounded-full bg-[#43102f] px-6 text-[12.5px] font-bold text-white">
             Save
           </button>
-          {editingZip && (
-            <button
-              type="button"
-              onClick={() => setEditingZip(false)}
-              className="h-11 rounded-full px-4 text-[12.5px] font-bold text-[#7a4c6c] hover:underline"
-            >
-              Cancel
-            </button>
-          )}
         </form>
       )}
 
-      {/* Optional filters (they apply automatically, no Search button) */}
+      {/* Interactive Leaflet Map Display */}
       {zip && (
-        <>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <input
-              value={cuisine}
-              onChange={(e) => setCuisine(e.target.value)}
-              placeholder="Filter by cuisine (optional)"
-              aria-label="Cuisine"
-              className={`${inputClass} w-[230px]`}
+        <div className="mb-6 h-[400px] w-full overflow-hidden rounded-[28px] border-2 border-[#43102f] shadow-md">
+          <MapContainer center={[28.6024, -81.2001]} zoom={14} scrollWheelZoom={false} className="h-full w-full z-0">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <div className="relative">
-              <select
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                aria-label="Maximum price"
-                className={`${inputClass} w-[130px] cursor-pointer appearance-none pr-9`}
-              >
-                <option value="">Any price</option>
-                <option value="1">$</option>
-                <option value="2">$$</option>
-                <option value="3">$$$</option>
-                <option value="4">$$$$</option>
-              </select>
-              <ChevronIcon className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7a4c6c]" />
-            </div>
-          </div>
-
-          <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Quick cuisine filters">
-            {QUICK_CUISINES.map((c) => {
-              const active = cuisine.toLowerCase() === c.toLowerCase();
-              return (
-                <button
-                  key={c}
-                  onClick={() => pickCuisine(c)}
-                  aria-pressed={active}
-                  className={`h-8 rounded-full border px-4 text-[11.5px] font-bold transition-colors ${
-                    active
-                      ? "border-[#43102f] bg-[#43102f] text-white"
-                      : "border-[#c86fb8] hover:bg-[#f0c8ec]/60"
-                  }`}
-                >
-                  {c}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div
-          role="alert"
-          className="mb-5 max-w-[520px] rounded-[28px] bg-[#fdf6ee] p-5 text-center"
-        >
-          <p className="font-semibold">Couldn&apos;t load places.</p>
-          <p className="mt-1 text-[12.5px] text-[#7a4c6c]">{error}</p>
-          <button
-            onClick={() => setReloadKey((k) => k + 1)}
-            className="mt-3 h-8 rounded-full bg-[#43102f] px-4 text-[11.5px] font-bold text-white"
-          >
-            Try again
-          </button>
+            {/* Example marker for UCF / central area or map results */}
+            <Marker position={[28.6024, -81.2001]}>
+              <Popup>
+                <div className="p-1">
+                  <h3 className="font-bold text-[#3E1230]">UCF Campus Center</h3>
+                  <p className="text-xs text-gray-600">Central Hub</p>
+                </div>
+              </Popup>
+            </Marker>
+          </MapContainer>
         </div>
       )}
 
@@ -372,38 +310,47 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
           <p className="mt-1 text-[12.5px] text-[#7a4c6c]">
             Try clearing the cuisine or price filter, or change your ZIP code.
           </p>
+      {/* Filters */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          value={cuisine}
+          onChange={(e) => CasingHandler(e.target.value)}
+          placeholder="Filter by cuisine (optional)"
+          className={`${inputClass} w-[230px]`}
+        />
+        <div className="relative">
+          <select
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            className={`${inputClass} w-[130px] cursor-pointer appearance-none pr-9`}
+          >
+            <option value="">Any price</option>
+            <option value="1">$</option>
+            <option value="2">$$</option>             <option value="3">$$$</option>
+          </select>
+          <ChevronIcon className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7a4c6c]" />
         </div>
-      )}
+      </div>
 
-      {results.length > 0 && (
-        <p className="mb-3 text-[12px] text-[#7a4c6c]" aria-live="polite">
-          Showing {results.length} {results.length === 1 ? "place" : "places"}
-        </p>
-      )}
+      <div className="mb-5 flex flex-wrap gap-2">
+        {QUICK_CUISINES.map((c) => {
+          const active = cuisine.toLowerCase() === c.toLowerCase();
+          return (
+            <button
+              key={c}
+              onClick={() => pickCuisine(c)}
+              className={`h-8 rounded-full border px-4 text-[11.5px] font-bold transition-colors ${
+                active ? "border-[#43102f] bg-[#43102f] text-white" : "border-[#c86fb8] hover:bg-[#f0c8ec]/60"
+              }`}
+            >
+              {c}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Loading skeleton (first load only) */}
-      {showSkeleton && (
-        <ul
-          className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
-          aria-busy="true"
-          aria-label="Loading places"
-        >
-          {[0, 1, 2].map((i) => (
-            <li
-              key={i}
-              className="h-[190px] animate-pulse rounded-[28px] bg-[#fdf6ee]/70 motion-reduce:animate-none"
-            />
-          ))}
-        </ul>
-      )}
-
-      {/* Results grid (dims slightly while a filter change reloads) */}
-      <ul
-        aria-busy={loading}
-        className={`grid grid-cols-1 gap-3 transition-opacity md:grid-cols-2 xl:grid-cols-3 ${
-          loading && results.length > 0 ? "opacity-60" : ""
-        }`}
-      >
+      {/* Results Grid */}
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {results.map((p, index) => (
           <li
             key={`${p.name}-${p.address ?? "unknown"}-${p.url ?? index}`}
@@ -484,9 +431,17 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
                 )}
               </div>
             </div>
+          <li key={`${p.name}-${index}`} className="flex flex-col rounded-[28px] border-2 border-transparent bg-[#fdf6ee] p-5">
+            <h3 className="text-[17px] font-semibold leading-tight">{p.name}</h3>
+            {p.address && <p className="mt-1.5 text-[12.5px] text-[#7a4c6c]">{p.address}</p>}
           </li>
         ))}
       </ul>
     </div>
   );
+}
+  
+  function CasingHandler(val: string) {
+    setCuisine(val);
+  }
 }
