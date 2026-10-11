@@ -123,8 +123,6 @@ export interface Place {
   price?: string;
   url?: string;
   verifiedOffer?: string;
-  lat?: number;
-  lng?: number;
 }
 
 export async function searchFood(p: {
