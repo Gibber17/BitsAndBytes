@@ -1,7 +1,8 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { convertNotes, getDashboardData, type DashboardData } from "../lib/api";
 import Button from "../components/Button.tsx";
 import Card from "../components/Card.tsx";
+import LatexPreview from "../components/LatexPreview";
 
 const iconProps = {
   viewBox: "0 0 24 24",
@@ -46,6 +47,26 @@ export default function NotesTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [previewNote, setPreviewNote] = useState<NoteItem | null>(null);
+  const [printNote, setPrintNote] = useState<NoteItem | null>(null);
+
+  useEffect(() => {
+    if (!printNote) return;
+    const cleanup = () => {
+      document.body.classList.remove("printing-notes");
+      setPrintNote(null);
+    };
+    const printTimer = window.setTimeout(() => {
+      document.body.classList.add("printing-notes");
+      window.addEventListener("afterprint", cleanup, { once: true });
+      window.print();
+    }, 100);
+    return () => {
+      window.clearTimeout(printTimer);
+      window.removeEventListener("afterprint", cleanup);
+      document.body.classList.remove("printing-notes");
+    };
+  }, [printNote]);
 
   // Fetch real user notes on mount
   useEffect(() => {
@@ -207,25 +228,101 @@ export default function NotesTab() {
                   ) : null
                 }
                 actions={
-                  <Button
-                    buttonSize="small"
-                    variant="secondary"
-                    onClick={() => {
-                      if (note.content) {
-                        navigator.clipboard.writeText(note.content);
-                        alert("LaTeX copied to clipboard!");
-                      } else {
-                        alert(`Opening note: ${note.title}`);
-                      }
-                    }}
-                  >
-                    {note.content ? "Copy LaTeX" : "View note"}
-                  </Button>
+                  <>
+                    <Button
+                      buttonSize="small"
+                      variant="secondary"
+                      disabled={!note.content}
+                      title={note.content ? "Preview typeset notes" : "This saved note has no stored conversion content."}
+                      onClick={() => setPreviewNote(note)}
+                    >
+                      Preview
+                    </Button>
+                    <Button
+                      buttonSize="small"
+                      variant="secondary"
+                      disabled={!note.content}
+                      title={note.content ? "Export typeset notes as PDF" : "This saved note has no stored conversion content."}
+                      onClick={() => setPrintNote(note)}
+                    >
+                      Export PDF
+                    </Button>
+                    {note.content && (
+                      <Button
+                        buttonSize="small"
+                        variant="link"
+                        onClick={() => void navigator.clipboard.writeText(note.content!).then(
+                          () => alert("LaTeX copied to clipboard!"),
+                          () => alert("Couldn't access the clipboard."),
+                        )}
+                      >
+                        Copy LaTeX
+                      </Button>
+                    )}
+                  </>
                 }
               />
             </li>
           ))}
         </ul>
+      )}
+
+      {previewNote?.content && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#24101f]/55 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPreviewNote(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="notes-preview-title"
+            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[28px] bg-[#fdf6ee] p-5 text-[#43102f] shadow-2xl sm:p-8"
+          >
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b3fc4]">Typeset preview</p>
+                <h2 id="notes-preview-title" className="mt-1 text-2xl font-bold">{previewNote.title}</h2>
+                <p className="mt-1 text-xs text-[#7a4c6c]">
+                  {new Date(previewNote.created_at).toLocaleDateString(undefined, {
+                    month: "long", day: "numeric", year: "numeric",
+                  })}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button buttonSize="small" onClick={() => setPrintNote(previewNote)}>Export PDF</Button>
+                <Button buttonSize="small" variant="secondary" onClick={() => setPreviewNote(null)}>Close</Button>
+              </div>
+            </div>
+            <div className="max-h-[65vh] overflow-auto rounded-2xl border border-[#ebc4e4] bg-white p-5 sm:p-8">
+              <LatexPreview latex={previewNote.content} />
+            </div>
+          </section>
+        </div>
+      )}
+
+      {printNote?.content && (
+        <article className="notes-pdf-document" aria-hidden="true">
+          <header className="notes-pdf-header">
+            <div className="notes-pdf-brand">
+              <span className="notes-pdf-mark">✦</span>
+              <span>KNIGHT STUDY SPACE</span>
+            </div>
+            <p className="notes-pdf-eyebrow">CONVERTED NOTES</p>
+            <h1>{printNote.title}</h1>
+            <p className="notes-pdf-date">
+              {new Date(printNote.created_at).toLocaleDateString(undefined, {
+                month: "long", day: "numeric", year: "numeric",
+              })}
+            </p>
+          </header>
+          <div className="notes-pdf-math">
+            <LatexPreview latex={printNote.content} />
+          </div>
+          <footer className="notes-pdf-footer">Converted to typeset notes with Knight Study Space</footer>
+        </article>
       )}
     </div>
   );

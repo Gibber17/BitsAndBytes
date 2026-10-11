@@ -71,6 +71,10 @@ textarea:focus-visible {
   margin: 0.65in;
 }
 
+.notes-pdf-document {
+  display: none;
+}
+
 @media print {
   body.printing-notes {
     min-width: 0;
