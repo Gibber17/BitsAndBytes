@@ -191,10 +191,22 @@ function App() {
         userName={settings.displayName || user?.first_name || user?.email || "Student"}
         userEmail={user?.email}
         onLogout={handleLogout}
+        player={
+          // Mini player on every tab except Lofi, which has full controls
+          tab !== "lofi" ? (
+            <MiniPlayer
+              track={currentTrack}
+              playing={playing}
+              onTogglePlay={handleTogglePlay}
+              onNext={handleNext}
+              onPrev={handlePrev}
+              onOpenLofi={() => setTab("lofi")}
+            />
+          ) : null
+        }
       />
 
-      {/* pb-24 keeps page content from being hidden behind the mini player */}
-      <main className={`min-w-0 flex-[999_1_560px] ${tab !== "lofi" ? "pb-24" : ""}`}>
+      <main className="min-w-0 flex-[999_1_560px]">
         {tab === "dashboard" && (
           <Dashboard
             onOpenNotes={() => setTab("notes")}
@@ -232,18 +244,6 @@ function App() {
           />
         )}
       </main>
-
-      {/* Mini player on every tab except Lofi, which has full controls */}
-      {tab !== "lofi" && (
-        <MiniPlayer
-          track={currentTrack}
-          playing={playing}
-          onTogglePlay={handleTogglePlay}
-          onNext={handleNext}
-          onPrev={handlePrev}
-          onOpenLofi={() => setTab("lofi")}
-        />
-      )}
     </div>
   );
 }

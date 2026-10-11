@@ -37,7 +37,7 @@
 [data-theme="dark"] .text-\[\#43102f\] { color: #F7E6F3; }
 
 [data-theme="dark"] .text-\[\#6B3A5C\],
-[data-theme="dark"] .text-\[\#7a4c6c\] { color: #CFA9C6; }
+[data-theme="dark"] .text-\[\#7a4c6c\] { color: #DDBBD5; }
 
 [data-theme="dark"] .text-\[\#8A2A6E\],
 [data-theme="dark"] .text-\[\#c86fb8\] { color: #E8A6DA; }
@@ -81,3 +81,45 @@
 [data-theme="dark"] .accent-\[\#43102f\] { accent-color: #E8A6DA; }
 
 [data-theme="dark"] .focus-visible\:ring-\[\#43102f\]:focus-visible { --tw-ring-color: #E8A6DA; }
+
+/* --- Button component (colours live in button.module.css, so the Tailwind
+       overrides above don't reach it). CSS-module class names still contain
+       the variant name, so we match on that. --- */
+[data-theme="dark"] button[class*="secondary"] {
+  color: #F7E6F3;
+  border-color: #C98BB8;
+  background-color: transparent;
+}
+[data-theme="dark"] button[class*="primary"] {
+  color: #1E0E19;
+  border-color: #F0C8EC;
+  background-color: #F0C8EC;
+}
+[data-theme="dark"] button[class*="light"] {
+  color: #F7E6F3;
+  border-color: #4A2342;
+  background-color: #44203D;
+}
+[data-theme="dark"] button[class*="link"] {
+  color: #E8A6DA;
+  background-color: transparent;
+}
+
+@media (hover: hover) {
+  [data-theme="dark"] button[class*="secondary"]:hover:not(:disabled) {
+    background-color: #44203D;
+  }
+  [data-theme="dark"] button[class*="primary"]:hover:not(:disabled) {
+    background-color: #FFDDF8;
+    border-color: #FFDDF8;
+  }
+  [data-theme="dark"] button[class*="light"]:hover:not(:disabled) {
+    background-color: #5A2B52;
+  }
+}
+
+[data-theme="dark"] button[class*="secondary"]:focus-visible,
+[data-theme="dark"] button[class*="primary"]:focus-visible {
+  outline: 2px solid #E8A6DA;
+  outline-offset: 2px;
+}

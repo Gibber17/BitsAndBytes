@@ -21,18 +21,18 @@ export default function MiniPlayer({
     <div
       role="region"
       aria-label="Lofi mini player"
-      className="fixed bottom-4 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 items-center gap-3 rounded-full bg-[#43102f] py-2 pl-5 pr-2 text-white shadow-lg"
+      className="flex w-full flex-col gap-3 rounded-[18px] bg-[#43102f] p-3 text-white shadow-lg"
     >
       <button
         onClick={onOpenLofi}
         aria-label="Open Lofi tab"
-        className="flex min-w-0 flex-1 flex-col text-left"
+        className="flex min-w-0 flex-col px-1 text-left"
       >
         <span className="truncate text-[12px] font-bold">{track.title}</span>
         <span className="truncate text-[10px] opacity-80">{track.artist}</span>
       </button>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         <button
           onClick={onPrev}
           aria-label="Previous track"

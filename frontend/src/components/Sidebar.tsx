@@ -1,7 +1,7 @@
 // Optional: the sidebar from the design. Render it next to your tab content in App.tsx:
 //
 //   <div className="flex min-h-screen flex-wrap bg-[#F7DCF9]">
-//     <Sidebar active={tab} onNavigate={setTab} userName="..." userEmail="..." />
+//     <Sidebar active={tab} onNavigate={setTab} userName="..." userEmail="..." player={<MiniPlayer ... />} />
 //     <main className="min-w-0 flex-[999_1_560px]">{/* current tab */}</main>
 //   </div>
 
@@ -15,6 +15,7 @@ interface Props {
   userName?: string;
   userEmail?: string;
   onLogout: () => void;
+  player?: ReactNode;
 }
 
 const LINKS: { tab: Tab; label: string; icon: ReactNode }[] = [
@@ -74,7 +75,7 @@ const LINKS: { tab: Tab; label: string; icon: ReactNode }[] = [
   },
 ];
 
-export default function Sidebar({ active, onNavigate, userName, userEmail, onLogout }: Props) {
+export default function Sidebar({ active, onNavigate, userName, userEmail, onLogout, player }: Props) {
   return (
     <nav
       aria-label="Main"
@@ -114,6 +115,8 @@ export default function Sidebar({ active, onNavigate, userName, userEmail, onLog
           );
         })}
       </ul>
+
+      {player}
 
       {userName && (
         <div className="mt-auto flex items-center gap-3 rounded-[18px] bg-[#F7DCF9] p-3 text-sm">

@@ -23,6 +23,9 @@ const TEXT_SIZES: { value: TextSize; label: string; sample: string }[] = [
 ];
 
 export default function SettingsTab({ settings, onChange, onReset, onLogOut, email }: Props) {
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
+
   return (
     <div className="mx-auto flex w-full max-w-[880px] flex-col gap-6 px-4 py-6 text-[#3E1230] sm:px-12 sm:py-10">
       <header className="flex flex-col gap-2">
@@ -109,15 +112,40 @@ export default function SettingsTab({ settings, onChange, onReset, onLogOut, ema
 
       {/* Account */}
       <Card title="Account">
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => {
-              if (window.confirm("Reset all settings on this device back to the defaults?")) onReset();
-            }}
-            className={secondaryButton}
-          >
-            Reset settings to default
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {confirmingReset ? (
+            <>
+              <span className="text-sm font-bold">Reset all settings on this device to the defaults?</span>
+              <button
+                onClick={() => {
+                  onReset();
+                  setConfirmingReset(false);
+                  setResetDone(true);
+                }}
+                className={primaryButton}
+              >
+                Yes, reset
+              </button>
+              <button onClick={() => setConfirmingReset(false)} className={secondaryButton}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                setResetDone(false);
+                setConfirmingReset(true);
+              }}
+              className={secondaryButton}
+            >
+              Reset settings to default
+            </button>
+          )}
+          {resetDone && (
+            <p role="status" className="text-sm font-bold">
+              Settings reset to defaults.
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 rounded-[20px] border-[1.5px] border-dashed border-[#B57AA8] p-5">
