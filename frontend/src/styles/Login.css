@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 .login-container {
+    position: relative;
     background-color: #FCF8F1;
     min-height: 100vh;
     display: flex;

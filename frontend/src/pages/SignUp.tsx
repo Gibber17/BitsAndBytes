@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "../styles/SignUp.css";
+import AuthBrandHome from "../components/AuthBrandHome";
 import { signInAccount, signUpAccount, type AuthUser } from "../lib/api";
 
 
@@ -62,6 +63,7 @@ export default function SignUp({ onSuccess, onShowLogin, onBack }: Props) {
  return (
    // TODO(style): centered card / container
    <div className="signup-container">
+     {onBack && <AuthBrandHome onHome={onBack} />}
      <div className="signup-left">
        <h2 className="signup-title">Sign up</h2>
 
@@ -145,11 +147,6 @@ export default function SignUp({ onSuccess, onShowLogin, onBack }: Props) {
        </form>
 
 
-       {onBack && (
-         <button type="button" className="auth-switch" onClick={onBack}>
-           ← Back to home
-         </button>
-       )}
      </div>
 
 
