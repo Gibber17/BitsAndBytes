@@ -6,6 +6,7 @@ import LofiTab from "./pages/LofiTab";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import FoodTab from "./pages/FoodTab";
 
 type View = "app" | "landing" | "login" | "signup";
 
@@ -46,9 +47,7 @@ function App() {
         )}
         {tab === "notes" && <NotesTab />}
         {tab === "lofi" && <LofiTab />}
-        {tab === "food" && (
-          <p className="p-10 text-[#3E1230]">Map coming soon.</p>
-        )}
+        {tab === "food" && <FoodTab />}
       </main>
     </div>
   );
