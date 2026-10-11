@@ -10,6 +10,8 @@ import {
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import Button from "../components/Button.tsx";
+import Card from "../components/Card.tsx";
 
 // Leaflet marker icon fix for Vite
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -491,6 +493,10 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
         </div>
       )}
 
+      {travelStatus && (
+        <p className="mb-4 text-[12.5px] text-[#9b2b43]">{travelStatus}</p>
+      )}
+
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <input
@@ -507,8 +513,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
           >
             <option value="">Any price</option>
             <option value="1">$</option>
-            <option value="2">$$</option>
-            <option value="3">$$$</option>
+            <option value="2">$$</option>             <option value="3">$$$</option>
           </select>
           <ChevronIcon className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7a4c6c]" />
         </div>
@@ -571,6 +576,10 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
         {results.map((p, index) => {
           const key = restaurantKey(p);
           const isSaved = savedRestaurants.some((saved) => restaurantKey(saved) === key);
+          const distanceMiles =
+            currentLocation && typeof p.lat === "number" && typeof p.lng === "number"
+              ? calculateDistanceMiles(currentLocation.lat, currentLocation.lng, p.lat, p.lng)
+              : null;
 
           return (
             <li
@@ -639,21 +648,70 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
                   {p.rating != null ? (
                     <span className="font-bold text-[#c2710c]">{p.rating}★</span>
                   ) : (
-                    <span className="text-[#7a4c6c]">No rating</span>
-                  )}
-                  {p.url && (
-                    <a
-                      className="inline-flex items-center gap-1.5 font-bold text-[#9b3fc4] underline-offset-2 hover:underline"
-                      href={p.url}
-                      target="_blank"
-                      rel="noreferrer"
+                    <span className="inline-flex w-fit items-center rounded-full border border-dashed border-[#c86fb8] px-3 py-1 text-[10.5px] font-semibold text-[#7a4c6c]">
+                      {p.price ?? "Price unavailable"}
+                    </span>
+                  )
+                }
+                note={
+                  p.verifiedOffer ? (
+                    <span className="text-[13.5px] font-semibold text-[#9b3fc4]">{p.verifiedOffer}</span>
+                  ) : p.price ? (
+                    <span className="text-[10.5px] text-[#7a4c6c]">
+                      Estimated from Google&apos;s price level, not a confirmed offer.
+                    </span>
+                  ) : null
+                }
+                title={p.name}
+                subtitle={
+                  p.address ? (
+                    <span className="flex items-start gap-1.5">
+                      <PinIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-[#c86fb8]" />
+                      {p.address}
+                    </span>
+                  ) : null
+                }
+                actions={
+                  <>
+                    <Button
+                      buttonSize="small"
+                      variant="secondary"
+                      onClick={() => void showPlaceOnMap(p)}
                     >
-                      View menu / offer
-                      <ExternalIcon />
-                    </a>
-                  )}
-                </div>
-              </div>
+                      {distanceMiles !== null ? `Show on map (${distanceMiles.toFixed(1)} mi)` : "Show on map"}
+                    </Button>
+                    <Button
+                      buttonSize="small"
+                      variant={isSaved ? "primary" : "secondary"}
+                      onClick={() => void toggleSavedRestaurant(p)}
+                      disabled={savingKey === key}
+                      aria-pressed={isSaved}
+                    >
+                      {savingKey === key ? "Saving…" : isSaved ? "Saved ✓" : "Save restaurant"}
+                    </Button>
+                  </>
+                }
+                footer={
+                  <>
+                    {p.rating != null ? (
+                      <span className="font-bold text-[#c2710c]">{p.rating}★</span>
+                    ) : (
+                      <span className="text-[#7a4c6c]">No rating</span>
+                    )}
+                    {p.url && (
+                      <a
+                        className="inline-flex items-center gap-1.5 font-bold text-[#9b3fc4] underline-offset-2 hover:underline"
+                        href={p.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View menu / offer
+                        <ExternalIcon />
+                      </a>
+                    )}
+                  </>
+                }
+              />
             </li>
           );
         })}

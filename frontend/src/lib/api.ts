@@ -120,9 +120,11 @@ export interface Place {
   lat?: number;
   lng?: number;
   rating?: number;
-  price?: string;           // estimated or unknown
+  price?: string;
   url?: string;
-  verifiedOffer?: string;   // only set for confirmed deals
+  verifiedOffer?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export async function searchFood(p: {

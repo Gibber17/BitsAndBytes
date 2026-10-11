@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Button from "../components/Button";
 import { getDashboardData, type AuthUser, type DashboardData } from "../lib/api";
 
 interface Props {
@@ -55,13 +56,6 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi, user }:
             {greeting()}, {userName}!
           </h2>
         </div>
-        <button
-          onClick={onOpenNotes}
-          className="inline-flex min-h-12 cursor-pointer items-center gap-2.5 rounded-full bg-[#3E1230] px-6 font-bold text-[#FDF8F2] transition-colors hover:bg-[#8A2A6E]"
-        >
-          <PlusIcon />
-          Upload notes
-        </button>
       </header>
 
       {/* Stat cards */}
@@ -109,9 +103,11 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi, user }:
             <h3 id="recent-h" className="font-['League_Spartan'] text-[28px] font-bold">
               Recent conversions
             </h3>
-            <button onClick={onOpenNotes} className="min-h-11 cursor-pointer text-sm font-bold underline">
-              See all
-            </button>
+            <span className="text-sm font-bold">
+              <Button variant="link" onClick={onOpenNotes}>
+                See all
+              </Button>
+            </span>
           </div>
           {recentNotes.length === 0 ? (
             <EmptyState text="No conversions yet." action="Convert your first notes" onClick={onOpenNotes} />
@@ -141,9 +137,11 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi, user }:
             <h3 id="places-h" className="font-['League_Spartan'] text-[28px] font-bold">
               Saved restaurants
             </h3>
-            <button onClick={onOpenFood} className="min-h-11 cursor-pointer text-sm font-bold underline">
-              Open map
-            </button>
+            <span className="text-sm font-bold">
+              <Button variant="link" onClick={onOpenFood}>
+                Open map
+              </Button>
+            </span>
           </div>
           {savedRestaurants.length === 0 ? (
             <EmptyState text="Nothing saved yet." action="Find food near you" onClick={onOpenFood} />
@@ -182,9 +180,11 @@ function EmptyState({ text, action, onClick }: { text: string; action: string; o
   return (
     <div className="flex flex-col items-start gap-3 rounded-2xl border-2 border-dashed border-[#B57AA8] p-5">
       <p className="text-[#6B3A5C]">{text}</p>
-      <button onClick={onClick} className="min-h-11 cursor-pointer font-bold underline">
-        {action}
-      </button>
+      <span className="font-bold">
+        <Button variant="link" onClick={onClick}>
+          {action}
+        </Button>
+      </span>
     </div>
   );
 }

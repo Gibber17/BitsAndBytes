@@ -40,33 +40,24 @@ export default function Login({ onSuccess, onShowSignup, onBack }: Props) {
   }
 
   return (
-    // TODO(style): centered card / container
     <div className="login-container">
       {onBack && <AuthBrandHome onHome={onBack} />}
       <div className="login-left">
         <h2 className="login-title">Login</h2>
 
         <form onSubmit={handleLogin}>
-          <label htmlFor="login-email" className="login-label">
-            Email
-          </label>
-
-          <input
+          <InputField
             id="login-email"
+            label="Email"
             type="email"
-            className="login-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <label htmlFor="login-password" className="login-label">
-            Password
-          </label>
-
-          <input
+          <InputField
             id="login-password"
+            label="Password"
             type="password"
-            className="login-input"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
           />
@@ -77,10 +68,9 @@ export default function Login({ onSuccess, onShowSignup, onBack }: Props) {
             </p>
           )}
 
-          <button type="submit" className="login-button" disabled={loading}>
+          <Button type="submit" showArrow disabled={loading}>
             {loading ? "Signing in..." : "Login"}
-            <span className="login-arrow">↗</span>
-          </button>
+          </Button>
 
           <p className="auth-switch">
             Don&apos;t have an account?{" "}
