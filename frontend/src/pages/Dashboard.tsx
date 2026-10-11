@@ -1,19 +1,12 @@
+import { useEffect, useState } from "react";
+import { getDashboardData, type AuthUser, type DashboardData } from "../lib/api";
+
 interface Props {
   onOpenNotes: () => void;
   onOpenFood: () => void;
   onOpenLofi: () => void;
+  user: AuthUser | null;
 }
-
-// TODO(data): replace these samples with real data from the backend
-const RECENT_NOTES = [
-  { id: "1", title: "Sample: Calculus review", date: "2026-10-08" },
-  { id: "2", title: "Sample: Physics lecture 4", date: "2026-10-05" },
-];
-
-const SAVED_PLACES = [
-  { id: "1", name: "Sample: Pizza Place", cuisine: "Pizza" },
-  { id: "2", name: "Sample: Noodle House", cuisine: "Ramen" },
-];
 
 function greeting() {
   const h = new Date().getHours();
@@ -21,9 +14,7 @@ function greeting() {
 }
 
 function formatDate(iso: string) {
-  // Parse as local date so "2026-10-08" doesn't shift a day in US time zones
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 const today = new Date().toLocaleDateString("en-US", {
@@ -32,9 +23,21 @@ const today = new Date().toLocaleDateString("en-US", {
   day: "numeric",
 });
 
-export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi }: Props) {
-  // TODO(auth): replace with the logged-in user's name or email
-  const userName = "[NAME]";
+export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi, user }: Props) {
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    getDashboardData()
+      .then(setDashboard)
+      .catch((error: unknown) => {
+        setLoadError(error instanceof Error ? error.message : "Couldn't load your dashboard.");
+      });
+  }, []);
+
+  const userName = user?.first_name || user?.email || "there";
+  const recentNotes = dashboard?.recent_notes ?? [];
+  const savedRestaurants = dashboard?.saved_restaurants ?? [];
 
   const quickActions = [
     { label: "Convert notes", hint: "Handwriting → LaTeX", onClick: onOpenNotes, icon: <NoteIcon /> },
@@ -65,10 +68,12 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi }: Props
       <section aria-labelledby="overview-h" className="flex flex-col gap-3">
         <h3 id="overview-h" className="sr-only">Overview</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <StatCard label="Notes converted" value={RECENT_NOTES.length} />
-          <StatCard label="Saved restaurants" value={SAVED_PLACES.length} />
+          <StatCard label="Notes converted" value={dashboard?.notes_converted ?? 0} />
+          <StatCard label="Saved restaurants" value={savedRestaurants.length} />
         </div>
       </section>
+
+      {loadError && <p role="status" className="text-sm text-[#6B3A5C]">{loadError}</p>}
 
       {/* Quick actions */}
       <section aria-labelledby="actions-h" className="flex flex-col gap-3">
@@ -108,18 +113,18 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi }: Props
               See all
             </button>
           </div>
-          {RECENT_NOTES.length === 0 ? (
+          {recentNotes.length === 0 ? (
             <EmptyState text="No conversions yet." action="Convert your first notes" onClick={onOpenNotes} />
           ) : (
             <ul className="flex flex-col gap-3">
-              {RECENT_NOTES.map((n) => (
+              {recentNotes.map((n) => (
                 <li key={n.id} className="flex items-center gap-3.5 rounded-2xl bg-[#F7DCF9] p-3">
                   <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#FDF8F2]">
                     <NoteIcon />
                   </span>
                   <span className="flex min-w-0 flex-col">
                     <strong className="truncate">{n.title}</strong>
-                    <span className="text-[13px] text-[#6B3A5C]">{formatDate(n.date)}</span>
+                    <span className="text-[13px] text-[#6B3A5C]">{formatDate(n.created_at)}</span>
                   </span>
                 </li>
               ))}
@@ -140,19 +145,20 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi }: Props
               Open map
             </button>
           </div>
-          {SAVED_PLACES.length === 0 ? (
+          {savedRestaurants.length === 0 ? (
             <EmptyState text="Nothing saved yet." action="Find food near you" onClick={onOpenFood} />
           ) : (
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
-              {SAVED_PLACES.map((p) => (
+              {savedRestaurants.map((p) => (
                 <li
                   key={p.id}
                   className="flex flex-col gap-2.5 rounded-[20px] border-[1.5px] border-[#EBC4E4] p-4"
                 >
                   <span className="self-start rounded-full bg-[#F7DCF9] px-3 py-1 text-[13px] font-bold">
-                    {p.cuisine}
+                    {p.price ?? "Saved restaurant"}
                   </span>
                   <strong className="font-['League_Spartan'] text-[22px]">{p.name}</strong>
+                  {p.address && <span className="text-sm text-[#6B3A5C]">{p.address}</span>}
                 </li>
               ))}
             </ul>

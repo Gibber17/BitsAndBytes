@@ -29,6 +29,35 @@ input {
   font-family: inherit;
 }
 
+.auth-error {
+  margin: 8px 0 0;
+  color: #9f2b43;
+  font-size: 14px;
+}
+
+.auth-switch {
+  margin: 14px 0 0;
+  color: #6b3a5c;
+  text-align: center;
+}
+
+.auth-switch button {
+  border: 0;
+  padding: 0;
+  color: #3e1230;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.login-button:disabled,
+.signup-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,

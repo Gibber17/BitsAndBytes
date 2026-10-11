@@ -3,10 +3,12 @@ import Sidebar, { type Tab } from "./components/Sidebar";
 import MiniPlayer from "./components/MiniPlayer";
 import Dashboard from "./pages/Dashboard";
 import NotesTab from "./pages/NotesTab";
+import FoodTab from "./pages/FoodTab";
 import LofiTab from "./pages/LofiTab";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import { getCurrentUser, signOutAccount, type AuthUser } from "./lib/api";
 import FoodTab from "./pages/FoodTab";
 import { lofiTracks } from "./data/LofiTracks";
 
@@ -16,6 +18,35 @@ function App() {
   // Start on the landing page
   const [view, setView] = useState<View>("landing");
   const [tab, setTab] = useState<Tab>("dashboard");
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((currentUser) => {
+        if (currentUser) {
+          setUser(currentUser);
+          setView("app");
+        }
+      })
+      .catch(() => {
+        // A missing or expired local session simply leaves the user on the landing page.
+      });
+  }, []);
+
+  function handleAuthSuccess(authenticatedUser: AuthUser) {
+    setUser(authenticatedUser);
+    setView("app");
+  }
+
+  async function handleLogout() {
+    try {
+      await signOutAccount();
+    } finally {
+      setUser(null);
+      setView("landing");
+      setTab("dashboard");
+    }
+  }
 
   // --- Global Lofi Player State ---
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -91,6 +122,10 @@ function App() {
   }
 
   if (view === "login") {
+    return <Login onSuccess={handleAuthSuccess} onShowSignup={() => setView("signup")} />;
+  }
+  if (view === "signup") {
+    return <SignUp onSuccess={handleAuthSuccess} onShowLogin={() => setView("login")} />;
     return (
       <Login
         onSuccess={() => {
@@ -136,8 +171,9 @@ function App() {
       <Sidebar
         active={tab}
         onNavigate={setTab}
-        userName="Nora"
-        userEmail="nora@example.com"
+        userName={user?.first_name || user?.email || "Student"}
+        userEmail={user?.email}
+        onLogout={handleLogout}
       />
 
       {/* pb-24 keeps page content from being hidden behind the mini player */}
@@ -147,9 +183,11 @@ function App() {
             onOpenNotes={() => setTab("notes")}
             onOpenFood={() => setTab("food")}
             onOpenLofi={() => setTab("lofi")}
+            user={user}
           />
         )}
         {tab === "notes" && <NotesTab />}
+        {tab === "lofi" && <LofiTab />}
         {tab === "lofi" && (
           <LofiTab
             track={currentTrack}

@@ -1,4 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  getSavedRestaurants,
+  removeSavedRestaurant,
+  saveRestaurant,
+  searchFood,
+  type Place,
+  type SavedRestaurant,
+} from "../lib/api";
 import { searchFood, type Place } from "../lib/api";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -40,6 +48,13 @@ function saveZip(z: string) {
   }
 }
 
+function restaurantKey(place: Place) {
+  return [place.name, place.address ?? "", place.url ?? ""]
+    .map((part) => part.trim().toLocaleLowerCase())
+    .join("|");
+}
+
+// Browser location -> ZIP code (free OpenStreetMap lookup, no API key)
 function detectZip(): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -117,12 +132,24 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   const [maxPrice, setMaxPrice] = useState("");
 
   const [results, setResults] = useState<Place[]>([]);
+  const [savedRestaurants, setSavedRestaurants] = useState<SavedRestaurant[]>([]);
+  const [savingKey, setSavingKey] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const requestId = useRef(0);
 
+  useEffect(() => {
+    getSavedRestaurants()
+      .then(setSavedRestaurants)
+      .catch((e: unknown) => {
+        setSaveError(e instanceof Error ? e.message : "Couldn't load saved restaurants.");
+      });
+  }, []);
+
+  // 1a. A ZIP passed in from the app always wins
   useEffect(() => {
     if (zipProp && isZip(zipProp)) {
       setZip(zipProp);
@@ -187,6 +214,26 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     const next = cuisine.toLowerCase() === c.toLowerCase() ? "" : c;
     setCuisine(next);
     setDebouncedCuisine(next);
+  }
+
+  async function toggleSavedRestaurant(place: Place) {
+    const key = restaurantKey(place);
+    const existing = savedRestaurants.find((saved) => restaurantKey(saved) === key);
+    setSavingKey(key);
+    setSaveError("");
+    try {
+      if (existing) {
+        await removeSavedRestaurant(existing.id);
+        setSavedRestaurants((current) => current.filter((saved) => saved.id !== existing.id));
+      } else {
+        const saved = await saveRestaurant(place);
+        setSavedRestaurants((current) => [...current.filter((item) => item.id !== saved.id), saved]);
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Couldn't update saved restaurants.");
+    } finally {
+      setSavingKey("");
+    }
   }
 
   const showZipForm = zipState === "needed" || editingZip;
@@ -254,6 +301,15 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
         </div>
       )}
 
+      {saveError && <p role="alert" className="mb-4 max-w-[520px] text-[12.5px] text-[#9b2b43]">{saveError}</p>}
+
+      {/* Empty */}
+      {loaded && !loading && !error && results.length === 0 && (
+        <div className="max-w-[520px] rounded-[28px] bg-[#fdf6ee] p-6 text-center">
+          <p className="font-semibold">No places found.</p>
+          <p className="mt-1 text-[12.5px] text-[#7a4c6c]">
+            Try clearing the cuisine or price filter, or change your ZIP code.
+          </p>
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <input
@@ -296,6 +352,85 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       {/* Results Grid */}
       <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {results.map((p, index) => (
+          <li
+            key={`${p.name}-${p.address ?? "unknown"}-${p.url ?? index}`}
+            className={`flex flex-col rounded-[28px] border-2 bg-[#fdf6ee] p-5 ${
+              p.verifiedOffer ? "border-[#43102f]" : "border-transparent"
+            }`}
+          >
+            {/* Verified offers vs. estimated prices */}
+            {p.verifiedOffer ? (
+              <>
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#43102f] px-3 py-1 text-[10.5px] font-bold text-white">
+                  <CheckIcon />
+                  Verified offer
+                </span>
+                <p className="mt-3 text-[13.5px] font-semibold text-[#9b3fc4]">
+                  {p.verifiedOffer}
+                </p>
+              </>
+            ) : (
+              <>
+                <span className="inline-flex w-fit items-center rounded-full border border-dashed border-[#c86fb8] px-3 py-1 text-[10.5px] font-semibold text-[#7a4c6c]">
+                  {p.price ?? "Price unavailable"}
+                </span>
+                {p.price && (
+                  <p className="mt-1.5 text-[10.5px] text-[#7a4c6c]">
+                    Estimated from Google&apos;s price level, not a confirmed offer.
+                  </p>
+                )}
+              </>
+            )}
+
+            <h3 className="mt-3 text-[17px] font-semibold leading-tight">{p.name}</h3>
+
+            {p.address && (
+              <p className="mt-1.5 flex items-start gap-1.5 text-[12.5px] text-[#7a4c6c]">
+                <PinIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-[#c86fb8]" />
+                {p.address}
+              </p>
+            )}
+
+            {(() => {
+              const key = restaurantKey(p);
+              const isSaved = savedRestaurants.some((saved) => restaurantKey(saved) === key);
+              return (
+                <button
+                  type="button"
+                  onClick={() => void toggleSavedRestaurant(p)}
+                  disabled={savingKey === key}
+                  aria-pressed={isSaved}
+                  className={`mt-4 self-start rounded-full px-4 py-2 text-[11.5px] font-bold transition-colors disabled:opacity-60 ${
+                    isSaved
+                      ? "bg-[#43102f] text-white"
+                      : "border border-[#c86fb8] text-[#43102f] hover:bg-[#f0c8ec]/60"
+                  }`}
+                >
+                  {savingKey === key ? "Saving…" : isSaved ? "Saved ✓" : "Save restaurant"}
+                </button>
+              );
+            })()}
+
+            <div className="mt-auto pt-4">
+              <div className="flex items-center justify-between border-t border-[#f0c8ec] pt-3 text-[12px]">
+                {p.rating != null ? (
+                  <span className="font-bold text-[#c2710c]">{p.rating}★</span>
+                ) : (
+                  <span className="text-[#7a4c6c]">No rating</span>
+                )}
+                {p.url && (
+                  <a
+                    className="inline-flex items-center gap-1.5 font-bold text-[#9b3fc4] underline-offset-2 hover:underline"
+                    href={p.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View menu / offer
+                    <ExternalIcon />
+                  </a>
+                )}
+              </div>
+            </div>
           <li key={`${p.name}-${index}`} className="flex flex-col rounded-[28px] border-2 border-transparent bg-[#fdf6ee] p-5">
             <h3 className="text-[17px] font-semibold leading-tight">{p.name}</h3>
             {p.address && <p className="mt-1.5 text-[12.5px] text-[#7a4c6c]">{p.address}</p>}
@@ -304,6 +439,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       </ul>
     </div>
   );
+}
   
   function CasingHandler(val: string) {
     setCuisine(val);

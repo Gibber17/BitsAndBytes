@@ -1,6 +1,13 @@
 import { useState } from "react";
 import "./Login.css";
+import { signInAccount, type AuthUser } from "../lib/api";
 
+interface Props {
+  onSuccess: (user: AuthUser) => void;
+  onShowSignup: () => void;
+}
+
+export default function Login({ onSuccess, onShowSignup }: Props) {
 interface LoginProps {
   onSuccess?: () => void;
   onSwitchToSignUp?: () => void;
@@ -10,7 +17,19 @@ interface LoginProps {
 export default function Login({ onSuccess, onSwitchToSignUp, onBack }: LoginProps) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      onSuccess(await signInAccount(email, pass));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't sign in.");
+    } finally {
+      setLoading(false);
   function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -59,11 +78,15 @@ export default function Login({ onSuccess, onSwitchToSignUp, onBack }: LoginProp
             onChange={(e) => setPass(e.target.value)}
           />
 
-          {/* TODO(auth): connect to real login */}
-          <button type="submit" className="login-button">
-            Login
+          {error && <p role="alert" className="auth-error">{error}</p>}
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Signing in..." : "Login"}
             <span className="login-arrow">↗</span>
           </button>
+          <p className="auth-switch">
+            Don&apos;t have an account? <button type="button" onClick={onShowSignup}>Sign up</button>
+          </p>
+      </form>
         </form>
 
         <p style={{ marginTop: 16, fontSize: 14 }}>
