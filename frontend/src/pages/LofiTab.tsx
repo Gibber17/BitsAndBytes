@@ -1,7 +1,22 @@
-import { useEffect, useRef, useState } from "react";
 import { lofiTracks, type Track } from "../data/LofiTracks";
 
 const TRACKS: Track[] = lofiTracks;
+
+export interface LofiTabProps {
+  track: Track;
+  currentIndex: number;
+  playing: boolean;
+  volume: number;
+  currentTime: number;
+  duration: number;
+  error?: string;
+  onSelectTrack: (i: number) => void;
+  onTogglePlay: () => void;
+  onNext: () => void;
+  onPrev: () => void;
+  onSeek: (val: number) => void;
+  onVolumeChange: (volume: number) => void;
+}
 
 const fmt = (s: number) =>
   Number.isFinite(s) && s > 0
@@ -21,56 +36,21 @@ const PauseIcon = ({ className = "h-[9px] w-[9px]" }: { className?: string }) =>
   </svg>
 );
 
-export default function LofiTab() {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.7);
-  const [error, setError] = useState("");
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-
-  const track = TRACKS[index];
-
-  // Start or stop playback whenever play state or track changes
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) {
-      audio.play().catch(() => {
-        setPlaying(false);
-        setError("Couldn't play this track. Check the audio URL.");
-      });
-    } else {
-      audio.pause();
-    }
-  }, [playing, index]);
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
-
-  // Reset progress when the track changes
-  useEffect(() => {
-    setCurrentTime(0);
-    setDuration(0);
-  }, [index]);
-
-  function next() {
-    setError("");
-    setIndex((i) => (i + 1) % TRACKS.length);
-  }
-
-  function prev() {
-    setError("");
-    setIndex((i) => (i - 1 + TRACKS.length) % TRACKS.length);
-  }
-
-  function seek(value: number) {
-    if (audioRef.current) audioRef.current.currentTime = value;
-    setCurrentTime(value);
-  }
-
+export default function LofiTab({
+  track,
+  currentIndex,
+  playing,
+  volume,
+  currentTime,
+  duration,
+  error,
+  onSelectTrack,
+  onTogglePlay,
+  onNext,
+  onPrev,
+  onSeek,
+  onVolumeChange,
+}: LofiTabProps) {
   const volPct = Math.round(volume * 100);
 
   return (
@@ -79,19 +59,6 @@ export default function LofiTab() {
       <p className="mb-[22px] max-w-[350px] text-[12.5px] text-[#7a4c6c]">
         Pick a track, layer in some rain or ocean, and settle in for a study session.
       </p>
-
-      <audio
-        ref={audioRef}
-        src={track.audioUrl}
-        loop={TRACKS.length === 1}
-        onEnded={next}
-        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
-        onError={() => {
-          setPlaying(false);
-          setError("Couldn't load this track. Check the audio URL.");
-        }}
-      />
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[271px_minmax(0,1fr)]">
         {/* Playlist */}
@@ -104,20 +71,12 @@ export default function LofiTab() {
           </h3>
           <ul className="flex flex-col gap-[9px]">
             {TRACKS.map((t, i) => {
-              const active = i === index;
+              const active = i === currentIndex;
               return (
                 <li key={t.id}>
                   <button
                     aria-current={active}
-                    onClick={() => {
-                      setError("");
-                      if (active) {
-                        setPlaying((p) => !p);
-                      } else {
-                        setIndex(i);
-                        setPlaying(true);
-                      }
-                    }}
+                    onClick={() => (active ? onTogglePlay() : onSelectTrack(i))}
                     className={`flex h-[50px] w-full items-center gap-[11px] rounded-full border pl-[7px] pr-4 text-left transition-colors ${
                       active
                         ? "border-[#43102f] bg-[#43102f] text-white"
@@ -162,7 +121,7 @@ export default function LofiTab() {
               max={duration || 0}
               step={1}
               value={currentTime}
-              onChange={(e) => seek(Number(e.target.value))}
+              onChange={(e) => onSeek(Number(e.target.value))}
               aria-label="Seek"
               className="h-1 flex-1 cursor-pointer accent-[#43102f]"
             />
@@ -172,7 +131,7 @@ export default function LofiTab() {
           {/* Controls */}
           <div className="my-4 flex items-center justify-center gap-4">
             <button
-              onClick={prev}
+              onClick={onPrev}
               aria-label="Previous track"
               className="grid h-[31px] w-[31px] place-items-center rounded-full bg-[#f0c8ec] transition-transform active:scale-95"
             >
@@ -182,7 +141,7 @@ export default function LofiTab() {
               </svg>
             </button>
             <button
-              onClick={() => setPlaying((p) => !p)}
+              onClick={onTogglePlay}
               aria-label={playing ? "Pause" : "Play"}
               className="grid h-[42px] w-[42px] place-items-center rounded-full bg-[#43102f] text-white transition-transform active:scale-95"
             >
@@ -193,7 +152,7 @@ export default function LofiTab() {
               )}
             </button>
             <button
-              onClick={next}
+              onClick={onNext}
               aria-label="Next track"
               className="grid h-[31px] w-[31px] place-items-center rounded-full bg-[#f0c8ec] transition-transform active:scale-95"
             >
@@ -219,7 +178,7 @@ export default function LofiTab() {
               max={1}
               step={0.01}
               value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
+              onChange={(e) => onVolumeChange(Number(e.target.value))}
               className="h-1 flex-1 cursor-pointer accent-[#43102f]"
             />
             <output className="min-w-[28px] text-right text-[#7a4c6c]">{volPct}%</output>
@@ -233,11 +192,6 @@ export default function LofiTab() {
           )}
         </section>
       </div>
-
-      {/* Ambient sound card (cut off in the screenshot) */}
-      <section className="mt-[26px] rounded-[28px] bg-[#e8b7e6] px-[26px] pb-[26px] pt-[22px]">
-        <h3 className="text-xl font-semibold">Layer in ambient sound</h3>
-      </section>
     </div>
   );
 }
