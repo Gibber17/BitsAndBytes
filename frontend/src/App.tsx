@@ -3,7 +3,11 @@ import Sidebar, { type Tab } from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import NotesTab from "./pages/NotesTab";
 import LofiTab from "./pages/LofiTab";
-import FoodTab from "./pages/FoodTab";
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+
+type View = "app" | "landing" | "login" | "signup";
 
 function App() {
   const [view, setView] = useState<View>("app");
@@ -14,8 +18,7 @@ function App() {
     return (
       <Landing
         onGetStarted={() => setView("app")}
-        onLogin={() => setView("login")}
-        onSignUp={() => setView("signup")}
+        onLogIn={() => setView("login")}
       />
     );
   }
@@ -43,7 +46,9 @@ function App() {
         )}
         {tab === "notes" && <NotesTab />}
         {tab === "lofi" && <LofiTab />}
-        {tab === "food" && <FoodTab />}
+        {tab === "food" && (
+          <p className="p-10 text-[#3E1230]">Map coming soon.</p>
+        )}
       </main>
     </div>
   );
