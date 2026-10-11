@@ -18,8 +18,7 @@ function App() {
     return (
       <Landing
         onGetStarted={() => setView("app")}
-        onLogin={() => setView("login")}
-        onSignUp={() => setView("signup")}
+        onLogIn={() => setView("login")}
       />
     );
   }
