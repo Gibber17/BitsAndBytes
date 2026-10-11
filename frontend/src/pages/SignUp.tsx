@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../SignUp.css";
+import "../styles/SignUp.css";
 import { signInAccount, signUpAccount, type AuthUser } from "../lib/api";
 
 
