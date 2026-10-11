@@ -199,3 +199,17 @@ textarea:focus-visible {
     font-size: 8pt;
   }
 }
+
+/* Settings tab: text size scales every rem-based size on the page */
+html[data-text-size="small"] { font-size: 14px; }
+html[data-text-size="large"] { font-size: 18px; }
+html[data-text-size="xl"] { font-size: 20px; }
+
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

@@ -1,0 +1,83 @@
+/*
+  Dark theme for the logged-in app (Settings > Appearance > Theme).
+  App.tsx puts data-theme="dark" on the app wrapper; these rules swap the
+  hardcoded Tailwind colours for dark equivalents. If you add a new
+  colour class like bg-[#123456], add its dark version here too.
+*/
+
+/* --- Page surfaces (light pinks become deep plums) --- */
+[data-theme="dark"] {
+  color-scheme: dark;
+  color: #F7E6F3;
+}
+[data-theme="dark"].bg-\[\#F7DCF9\],
+[data-theme="dark"] .bg-\[\#F7DCF9\] { background-color: #1E0E19; }
+
+[data-theme="dark"] .bg-\[\#FDF8F2\],
+[data-theme="dark"] .bg-\[\#fdf6ee\] { background-color: #2A1424; }
+
+[data-theme="dark"] .bg-white { background-color: #24111F; }
+
+[data-theme="dark"] .bg-\[\#F2C9EF\],
+[data-theme="dark"] .bg-\[\#f0c8ec\],
+[data-theme="dark"] .bg-\[\#f6d9f7\] { background-color: #341A2E; }
+
+[data-theme="dark"] .bg-\[\#E9B8EF\] { background-color: #44203D; }
+[data-theme="dark"] .bg-\[\#E2A9EE\] { background-color: #5A2B52; }
+[data-theme="dark"] .bg-\[\#E2D2F9\] { background-color: #2F2440; }
+[data-theme="dark"] .bg-\[\#B57AA8\] { background-color: #6A4462; }
+
+/* --- Accent fills (dark plum buttons/pills become a brighter plum so
+       their cream/white text stays readable) --- */
+[data-theme="dark"] .bg-\[\#3E1230\],
+[data-theme="dark"] .bg-\[\#43102f\] { background-color: #8A2A6E; }
+
+/* --- Text --- */
+[data-theme="dark"] .text-\[\#3E1230\],
+[data-theme="dark"] .text-\[\#43102f\] { color: #F7E6F3; }
+
+[data-theme="dark"] .text-\[\#6B3A5C\],
+[data-theme="dark"] .text-\[\#7a4c6c\] { color: #CFA9C6; }
+
+[data-theme="dark"] .text-\[\#8A2A6E\],
+[data-theme="dark"] .text-\[\#c86fb8\] { color: #E8A6DA; }
+
+[data-theme="dark"] .text-\[\#9b3fc4\] { color: #D9A3F0; }
+[data-theme="dark"] .text-\[\#9b2b43\] { color: #FF8FA8; }
+[data-theme="dark"] .text-\[\#c2710c\] { color: #F0A64A; }
+[data-theme="dark"] .text-\[\#155eef\] { color: #8AB4FF; }
+
+[data-theme="dark"] .placeholder\:text-\[\#8F6A85\]::placeholder,
+[data-theme="dark"] .placeholder\:text-\[\#7a4c6c\]\/70::placeholder { color: #9F7D96; }
+
+/* --- Borders --- */
+[data-theme="dark"] .border-\[\#3E1230\],
+[data-theme="dark"] .border-\[\#43102f\],
+[data-theme="dark"] .focus\:border-\[\#3E1230\]:focus { border-color: #C98BB8; }
+
+[data-theme="dark"] .border-\[\#B57AA8\] { border-color: #7A5070; }
+
+[data-theme="dark"] .border-\[\#EBC4E4\],
+[data-theme="dark"] .border-\[\#F2C9EF\],
+[data-theme="dark"] .border-\[\#f0c8ec\] { border-color: #4A2342; }
+
+[data-theme="dark"] .border-\[\#FDF8F2\] { border-color: #2A1424; }
+
+/* --- Hover states --- */
+@media (hover: hover) {
+  [data-theme="dark"] .hover\:bg-\[\#F2C9EF\]:hover,
+  [data-theme="dark"] .hover\:bg-\[\#f0c8ec\]:hover,
+  [data-theme="dark"] .hover\:bg-\[\#f0c8ec\]\/60:hover,
+  [data-theme="dark"] .hover\:bg-\[\#F7DCF9\]:hover { background-color: #44203D; }
+
+  [data-theme="dark"] .hover\:bg-\[\#FDF8F2\]:hover { background-color: #2A1424; }
+
+  [data-theme="dark"] .hover\:bg-\[\#8A2A6E\]:hover,
+  [data-theme="dark"] .hover\:bg-\[\#3E1230\]:hover { background-color: #A23A85; }
+}
+
+/* --- Form controls --- */
+[data-theme="dark"] .accent-\[\#3E1230\],
+[data-theme="dark"] .accent-\[\#43102f\] { accent-color: #E8A6DA; }
+
+[data-theme="dark"] .focus-visible\:ring-\[\#43102f\]:focus-visible { --tw-ring-color: #E8A6DA; }

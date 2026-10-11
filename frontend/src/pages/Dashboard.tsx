@@ -93,11 +93,12 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi, user }:
         </div>
       </section>
 
-      <div className="flex flex-wrap gap-6">
+      {/* Equal-width columns side by side from 640px up; stacked on phones */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {/* Recent conversions */}
         <section
           aria-labelledby="recent-h"
-          className="flex min-w-0 flex-[1_1_280px] flex-col gap-4 rounded-[28px] bg-[#FDF8F2] p-6 sm:p-7"
+          className="flex min-w-0 flex-col gap-4 rounded-[28px] bg-[#FDF8F2] p-6 sm:p-7"
         >
           <div className="flex items-center justify-between gap-3">
             <h3 id="recent-h" className="font-['League_Spartan'] text-[28px] font-bold">
@@ -131,7 +132,7 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi, user }:
         {/* Saved restaurants */}
         <section
           aria-labelledby="places-h"
-          className="flex min-w-0 flex-[2_1_480px] flex-col gap-4 rounded-[28px] bg-[#FDF8F2] p-6 sm:p-7"
+          className="flex min-w-0 flex-col gap-4 rounded-[28px] bg-[#FDF8F2] p-6 sm:p-7"
         >
           <div className="flex items-center justify-between gap-3">
             <h3 id="places-h" className="font-['League_Spartan'] text-[28px] font-bold">
@@ -146,7 +147,7 @@ export default function Dashboard({ onOpenNotes, onOpenFood, onOpenLofi, user }:
           {savedRestaurants.length === 0 ? (
             <EmptyState text="Nothing saved yet." action="Find food near you" onClick={onOpenFood} />
           ) : (
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
               {savedRestaurants.map((p) => (
                 <li
                   key={p.id}
