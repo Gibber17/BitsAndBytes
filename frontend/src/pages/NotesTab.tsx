@@ -40,6 +40,10 @@ function formatDate(iso: string) {
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function getNoteTitle(file: File | null) {
+  return file?.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || "Converted notes";
+}
+
 export default function NotesTab() {
   // "library" = grid of notes (default), "convert" = upload + LaTeX editor
   const [view, setView] = useState<"library" | "convert">("library");
@@ -107,6 +111,22 @@ export default function NotesTab() {
     } catch {
       setError("Couldn't copy to the clipboard.");
     }
+  }
+
+  function handleExportPdf() {
+    if (!latex.trim()) return;
+
+    const previousTitle = document.title;
+    document.title = `${getNoteTitle(file)} - Notes`;
+    document.body.classList.add("printing-notes");
+
+    const cleanup = () => {
+      document.body.classList.remove("printing-notes");
+      document.title = previousTitle;
+    };
+
+    window.addEventListener("afterprint", cleanup, { once: true });
+    window.print();
   }
 
   const fileInput = (
@@ -244,7 +264,7 @@ export default function NotesTab() {
 
   /* ---------------- Convert view ---------------- */
   return (
-    <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6 text-[#3E1230] sm:px-12 sm:py-10">
+    <div className="notes-export-screen mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 py-6 text-[#3E1230] sm:px-12 sm:py-10">
       <header className="flex flex-col gap-3">
         <button
           onClick={() => setView("library")}
@@ -322,15 +342,24 @@ export default function NotesTab() {
       {latex && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <section className="flex min-w-0 flex-col gap-3 rounded-[28px] bg-[#FDF8F2] p-6">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="font-['League_Spartan'] text-[26px] font-bold">LaTeX source</h3>
-              <button
-                onClick={handleCopy}
-                className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-[#F7DCF9] px-4 text-sm font-bold hover:bg-[#F2C9EF]"
-              >
-                <CopyIcon />
-                {copied ? "Copied!" : "Copy LaTeX"}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleCopy}
+                  className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-[#F7DCF9] px-4 text-sm font-bold hover:bg-[#F2C9EF]"
+                >
+                  <CopyIcon />
+                  {copied ? "Copied!" : "Copy LaTeX"}
+                </button>
+                <button
+                  onClick={handleExportPdf}
+                  className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-[#3E1230] px-4 text-sm font-bold text-[#FDF8F2] hover:bg-[#8A2A6E]"
+                >
+                  <DownloadIcon />
+                  Export PDF
+                </button>
+              </div>
             </div>
             <label htmlFor="latex-src" className="sr-only">LaTeX source</label>
             <textarea
@@ -350,6 +379,26 @@ export default function NotesTab() {
             </div>
           </section>
         </div>
+      )}
+
+      {latex && (
+        <article className="notes-pdf-document hidden" aria-label="PDF export preview">
+          <header className="notes-pdf-header">
+            <div className="notes-pdf-brand">
+              <span className="notes-pdf-mark" aria-hidden="true">K</span>
+              <span>KNIGHT STUDY SPACE</span>
+            </div>
+            <p className="notes-pdf-eyebrow">HANDWRITTEN NOTES · CONVERTED</p>
+            <h1>{getNoteTitle(file)}</h1>
+            <p className="notes-pdf-date">
+              Exported {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+            </p>
+          </header>
+          <section className="notes-pdf-math" aria-label="Typeset notes">
+            <LatexPreview latex={latex} />
+          </section>
+          <footer className="notes-pdf-footer">Converted to typeset notes with Knight Study Space</footer>
+        </article>
       )}
     </div>
   );
@@ -405,6 +454,14 @@ function CopyIcon() {
     <svg {...stroke} width={16} height={16}>
       <rect x="9" y="9" width="12" height="12" rx="2" />
       <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg {...stroke} width={16} height={16}>
+      <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3" />
     </svg>
   );
 }
