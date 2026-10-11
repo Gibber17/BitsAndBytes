@@ -117,6 +117,8 @@ export interface Place {
   id?: string;
   name: string;
   address?: string;
+  lat?: number;
+  lng?: number;
   rating?: number;
   price?: string;           // estimated or unknown
   url?: string;

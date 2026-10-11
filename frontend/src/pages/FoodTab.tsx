@@ -7,7 +7,7 @@ import {
   type Place,
   type SavedRestaurant,
 } from "../lib/api";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -26,8 +26,17 @@ L.Marker.prototype.options.icon = L.icon({
   shadowSize: [41, 41],
 });
 
+const currentLocationIcon = L.divIcon({
+  className: "",
+  html: '<span style="display:block;width:20px;height:20px;border:3px solid white;border-radius:50%;background:#3478f6;box-shadow:0 1px 6px #333"></span>',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
+
 const ZIP_KEY = "knight.zip";
 const QUICK_CUISINES = ["Pizza", "Coffee", "Burgers", "Mexican", "Asian", "Dessert"];
+type Coordinate = { lat: number; lng: number; accuracy?: number };
+type RouteInfo = { positions: [number, number][]; durationSeconds: number; distanceMeters: number };
 
 const isZip = (z: string) => /^\d{5}$/.test(z);
 
@@ -54,31 +63,78 @@ function restaurantKey(place: Place) {
     .join("|");
 }
 
-// Browser location -> ZIP code (free OpenStreetMap lookup, no API key)
-function detectZip(): Promise<string> {
+function getCurrentLocation(): Promise<Coordinate> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Location not supported"));
+      reject(new Error("Location is not supported by this browser."));
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${coords.latitude}&lon=${coords.longitude}`;
-          const res = await fetch(url, { headers: { Accept: "application/json" } });
-          if (!res.ok) throw new Error("Reverse lookup failed");
-          const data = await res.json();
-          const zip = String(data?.address?.postcode ?? "").match(/\d{5}/)?.[0];
-          if (!zip) throw new Error("No ZIP found");
-          resolve(zip);
-        } catch (e) {
-          reject(e);
-        }
-      },
-      (err) => reject(err),
-      { timeout: 10000, maximumAge: 10 * 60 * 1000 }
+      ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }),
+      (error) => reject(new Error(error.code === error.PERMISSION_DENIED
+        ? "Allow location access in your browser to see your position and travel time."
+        : "Could not determine your current location.")),
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 },
     );
   });
+}
+
+async function fetchDrivingRoute(from: Coordinate, to: Coordinate): Promise<RouteInfo> {
+  const routeUrl = new URL(
+    `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}`,
+  );
+  routeUrl.search = new URLSearchParams({ overview: "full", geometries: "geojson", steps: "false" }).toString();
+  const response = await fetch(routeUrl);
+  if (!response.ok) throw new Error("Route service unavailable.");
+  const data = await response.json() as {
+    code?: string;
+    routes?: { duration: number; distance: number; geometry: { coordinates: [number, number][] } }[];
+  };
+  const bestRoute = data.routes?.[0];
+  if (data.code !== "Ok" || !bestRoute) throw new Error("No driving route was found.");
+  return {
+    positions: bestRoute.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
+    durationSeconds: bestRoute.duration,
+    distanceMeters: bestRoute.distance,
+  };
+}
+
+function MapViewport({
+  restaurant,
+  current,
+  fallback,
+  fallbackZoom,
+}: {
+  restaurant: Coordinate | null;
+  current: Coordinate | null;
+  fallback: [number, number];
+  fallbackZoom: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const points = [restaurant, current]
+      .filter((point): point is Coordinate => point !== null)
+      .map((point) => [point.lat, point.lng] as [number, number]);
+    if (points.length > 1) {
+      map.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 15 });
+    } else if (points.length === 1) {
+      map.setView(points[0], 15);
+    } else {
+      map.setView(fallback, fallbackZoom);
+    }
+  }, [map, restaurant?.lat, restaurant?.lng, current?.lat, current?.lng, fallback[0], fallback[1], fallbackZoom]);
+  return null;
+}
+
+// Browser coordinates -> ZIP code (free OpenStreetMap lookup, no API key)
+async function detectZip(location: Coordinate): Promise<string> {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${location.lat}&lon=${location.lng}`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error("Reverse lookup failed");
+  const data = await res.json();
+  const zip = String(data?.address?.postcode ?? "").match(/\d{5}/)?.[0];
+  if (!zip) throw new Error("No ZIP found");
+  return zip;
 }
 
 const iconProps = {
@@ -132,6 +188,11 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   const [maxPrice, setMaxPrice] = useState("");
 
   const [results, setResults] = useState<Place[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<Coordinate | null>(null);
+  const [locationStatus, setLocationStatus] = useState("Finding your location…");
+  const [route, setRoute] = useState<RouteInfo | null>(null);
+  const [travelStatus, setTravelStatus] = useState("");
   const [savedRestaurants, setSavedRestaurants] = useState<SavedRestaurant[]>([]);
   const [savingKey, setSavingKey] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -140,6 +201,8 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const requestId = useRef(0);
+  const mapRequestId = useRef(0);
+  const hasZipAtStartup = useRef(Boolean(zip || (zipProp && isZip(zipProp))));
 
   // Load the user's saved restaurants once
   useEffect(() => {
@@ -158,24 +221,35 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     }
   }, [zipProp]);
 
-  // Try to detect the ZIP from the browser's location if we don't have one
+  // Show the user's position as soon as the Food tab opens. Reuse that same fix
+  // for ZIP detection and later routing so the map and route share one origin.
   useEffect(() => {
-    if (zip) return;
     let cancelled = false;
-    detectZip()
-      .then((z) => {
+    const hasZip = hasZipAtStartup.current;
+    getCurrentLocation()
+      .then(async (location) => {
         if (cancelled) return;
-        saveZip(z);
-        setZip(z);
-        setZipState("ready");
+        setCurrentLocation(location);
+        setLocationStatus("");
+        if (hasZip) return;
+        try {
+          const detectedZip = await detectZip(location);
+          if (cancelled) return;
+          saveZip(detectedZip);
+          setZip(detectedZip);
+          setZipState("ready");
+        } catch {
+          if (!cancelled) setZipState("needed");
+        }
       })
       .catch(() => {
-        if (!cancelled) setZipState("needed");
+        if (cancelled) return;
+        setLocationStatus("Location unavailable. Allow location access to show your position on the map.");
+        if (!hasZip) setZipState("needed");
       });
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Debounce the cuisine text box
@@ -241,6 +315,61 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     }
   }
 
+  async function showPlaceOnMap(place: Place) {
+    const request = ++mapRequestId.current;
+    setSelectedPlace(place);
+    setCurrentLocation(null);
+    setRoute(null);
+    if (typeof place.lat !== "number" || typeof place.lng !== "number") {
+      setTravelStatus("This place did not include map coordinates. Refresh the search and try again.");
+      return;
+    }
+
+    setTravelStatus("Requesting your location…");
+    try {
+      const current = currentLocation ?? await getCurrentLocation();
+      if (request !== mapRequestId.current) return;
+      setCurrentLocation(current);
+      setLocationStatus("");
+      setTravelStatus("Finding a driving route…");
+      const nextRoute = await fetchDrivingRoute(current, { lat: place.lat, lng: place.lng });
+      if (request !== mapRequestId.current) return;
+      setRoute(nextRoute);
+      setTravelStatus("");
+    } catch (e) {
+      if (request !== mapRequestId.current) return;
+      setTravelStatus(e instanceof Error ? e.message : "Could not calculate a route.");
+    }
+  }
+
+  async function adjustCurrentLocation(location: Coordinate) {
+    setCurrentLocation(location);
+    if (!selectedCoordinate) return;
+    const request = ++mapRequestId.current;
+    setRoute(null);
+    setTravelStatus("Updating driving route…");
+    try {
+      const nextRoute = await fetchDrivingRoute(location, selectedCoordinate);
+      if (request !== mapRequestId.current) return;
+      setRoute(nextRoute);
+      setTravelStatus("");
+    } catch (e) {
+      if (request !== mapRequestId.current) return;
+      setTravelStatus(e instanceof Error ? e.message : "Could not calculate a route.");
+    }
+  }
+
+  const selectedCoordinate = selectedPlace && typeof selectedPlace.lat === "number" && typeof selectedPlace.lng === "number"
+    ? { lat: selectedPlace.lat, lng: selectedPlace.lng }
+    : null;
+  const firstMappedPlace = results.find((place) => typeof place.lat === "number" && typeof place.lng === "number");
+  const fallbackCenter: [number, number] = currentLocation
+    ? [currentLocation.lat, currentLocation.lng]
+    : firstMappedPlace
+      ? [firstMappedPlace.lat!, firstMappedPlace.lng!]
+      : [39.8283, -98.5795];
+  const fallbackZoom = currentLocation || firstMappedPlace ? 12 : 4;
+
   const showZipForm = zipState === "needed" || editingZip;
 
   return (
@@ -295,11 +424,11 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       )}
 
       {/* Interactive Leaflet Map Display */}
-      {zip && (
+      {(zip || currentLocation) && (
         <div className="mb-6 h-[400px] w-full overflow-hidden rounded-[28px] border-2 border-[#43102f] shadow-md">
           <MapContainer
-            center={[28.6024, -81.2001]}
-            zoom={14}
+            center={fallbackCenter}
+            zoom={fallbackZoom}
             scrollWheelZoom={false}
             className="z-0 h-full w-full"
           >
@@ -307,16 +436,58 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {/* Example marker for UCF / central area */}
-            <Marker position={[28.6024, -81.2001]}>
-              <Popup>
-                <div className="p-1">
-                  <h3 className="font-bold text-[#3E1230]">UCF Campus Center</h3>
-                  <p className="text-xs text-gray-600">Central Hub</p>
-                </div>
-              </Popup>
-            </Marker>
+            <MapViewport
+              restaurant={selectedCoordinate}
+              current={currentLocation}
+              fallback={fallbackCenter}
+              fallbackZoom={fallbackZoom}
+            />
+            {selectedCoordinate && (
+              <Marker position={[selectedCoordinate.lat, selectedCoordinate.lng]}>
+                <Popup><strong>{selectedPlace?.name}</strong><br />Restaurant</Popup>
+              </Marker>
+            )}
+            {currentLocation && (
+              <Marker
+                position={[currentLocation.lat, currentLocation.lng]}
+                icon={currentLocationIcon}
+                draggable
+                eventHandlers={{
+                  dragend: (event) => {
+                    const point = event.target.getLatLng();
+                    void adjustCurrentLocation({ lat: point.lat, lng: point.lng });
+                  },
+                }}
+              >
+                <Popup>Your location (drag to adjust)</Popup>
+              </Marker>
+            )}
+            {route && (
+              <Polyline positions={route.positions} pathOptions={{ color: "#155eef", weight: 5, opacity: 0.8 }} />
+            )}
           </MapContainer>
+        </div>
+      )}
+      {(selectedPlace || currentLocation || locationStatus || travelStatus || route) && (
+        <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-[#fdf6ee] px-4 py-3 text-[12px]">
+          {selectedPlace && <span className="font-semibold">Map: {selectedPlace.name}</span>}
+          {locationStatus && <span className="text-[#7a4c6c]">{locationStatus}</span>}
+          {travelStatus && <span className="text-[#7a4c6c]">{travelStatus}</span>}
+          {currentLocation && (
+            <span className="text-[#7a4c6c]">
+              Blue pin: drag to correct your location
+              {currentLocation.accuracy != null && ` · GPS accuracy about ${Math.round(currentLocation.accuracy)} m`}
+            </span>
+          )}
+          {route && (
+            <span className="font-semibold text-[#155eef]">
+              Estimated drive: {Math.max(1, Math.round(route.durationSeconds / 60))} min
+              {route.distanceMeters >= 1000
+                ? ` · ${(route.distanceMeters / 1000).toFixed(1)} km`
+                : ` · ${Math.round(route.distanceMeters)} m`}
+              <span className="ml-1 font-normal text-[#7a4c6c]">(approximate, no live traffic)</span>
+            </span>
+          )}
         </div>
       )}
 
@@ -440,6 +611,14 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
                   {p.address}
                 </p>
               )}
+
+              <button
+                type="button"
+                onClick={() => void showPlaceOnMap(p)}
+                className="mt-4 self-start rounded-full border border-[#c86fb8] px-4 py-2 text-[11.5px] font-bold text-[#43102f] hover:bg-[#f0c8ec]/60"
+              >
+                Show on map
+              </button>
 
               <button
                 type="button"
