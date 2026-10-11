@@ -5,8 +5,7 @@ import styles from "./button.module.css";
 
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary";
-  buttonSize?: "small" | "medium" | "large";
+  variant?: "primary" | "secondary" | "light" | "link";  buttonSize?: "small" | "medium" | "large";
   fullWidth?: boolean;
   showArrow?: boolean;
 }

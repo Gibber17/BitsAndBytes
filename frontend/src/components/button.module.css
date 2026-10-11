@@ -1,41 +1,93 @@
+.button {
+  display: inline-flex;
+  min-height: 3rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: 9999px;
+  padding: 0 1.5rem;
+  font-weight: 700;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
 
-@layer components {
-    .button {
-      @apply inline-flex min-h-12 cursor-pointer items-center
-             justify-center gap-2.5 rounded-full px-6
-             font-bold transition-colors;
-    }
-  
-    .primary {
-      @apply bg-[#3E1230] text-[#FDF8F2]
-             hover:bg-[#8A2A6E];
-    }
-  
-    .secondary {
-      @apply border border-[#441828] bg-transparent
-             text-[#441828];
-    }
-  
-    .small {
-      @apply min-h-10 px-4 text-sm;
-    }
-  
-    .medium {
-      @apply min-h-12 px-6 text-base;
-    }
-  
-    .large {
-      @apply min-h-14 px-8 text-lg;
-    }
-  
-    .fullWidth {
-      @apply w-full;
-    }
-  
-    .arrow {
-      @apply inline-flex items-center justify-center;
-      font-size: 24px;
-    }
-  }
-  
-  
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.primary {
+  border: 1px solid #3e1230;
+  background-color: #3e1230;
+  color: #fdf8f2;
+}
+
+.primary:hover:not(:disabled) {
+  border-color: #8a2a6e;
+  background-color: #8a2a6e;
+}
+
+.secondary {
+  border: 1px solid #441828;
+  background-color: transparent;
+  color: #441828;
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: #f2c9ef;
+}
+
+/* Pink button for use on dark backgrounds */
+.light {
+  border: 1px solid #f2c9ef;
+  background-color: #f2c9ef;
+  color: #3e1230;
+}
+
+.light:hover:not(:disabled) {
+  border-color: #fdf8f2;
+  background-color: #fdf8f2;
+}
+
+.small {
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+}
+
+.medium {
+  min-height: 3rem;
+  padding: 0 1.5rem;
+  font-size: 1rem;
+}
+
+.large {
+  min-height: 3.5rem;
+  padding: 0 2rem;
+  font-size: 1.125rem;
+}
+
+/* Plain underlined text button. Keep this AFTER the size classes so it overrides them. */
+.link {
+  min-height: 0;
+  gap: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 400;
+  color: inherit;
+  text-decoration: underline;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}

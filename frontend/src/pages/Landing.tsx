@@ -1,3 +1,5 @@
+import Button from "../components/Button";
+
 interface Props {
   onGetStarted: () => void; // Sign up / Get started buttons
   onLogIn: () => void; // Log in buttons
@@ -77,18 +79,12 @@ export default function LandingPage({ onGetStarted, onLogIn }: Props) {
           <a href="#how" className="hidden min-h-11 items-center px-3.5 text-[15px] font-bold no-underline sm:inline-flex">
             How it works
           </a>
-          <button
-            onClick={onLogIn}
-            className="inline-flex min-h-11 cursor-pointer items-center rounded-full border-[1.5px] border-[#3E1230] px-5 text-[15px] font-bold hover:bg-[#F2C9EF]"
-          >
+          <Button variant="secondary" buttonSize="small" onClick={onLogIn}>
             Log in
-          </button>
-          <button
-            onClick={onGetStarted}
-            className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-[#3E1230] px-[22px] text-[15px] font-bold text-[#FDF8F2] transition-colors hover:bg-[#8A2A6E]"
-          >
+          </Button>
+          <Button buttonSize="small" onClick={onGetStarted}>
             Sign up
-          </button>
+          </Button>
         </nav>
       </header>
 
@@ -109,19 +105,13 @@ export default function LandingPage({ onGetStarted, onLogIn }: Props) {
             break.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <button
-              onClick={onGetStarted}
-              className="inline-flex min-h-14 cursor-pointer items-center gap-2.5 rounded-full bg-[#3E1230] px-7 text-[17px] font-bold text-[#FDF8F2] transition-colors hover:bg-[#8A2A6E]"
-            >
+            <Button buttonSize="large" onClick={onGetStarted}>
               Get started — it's free
               <ArrowIcon />
-            </button>
-            <button
-              onClick={onLogIn}
-              className="inline-flex min-h-14 cursor-pointer items-center rounded-full border-[1.5px] border-[#3E1230] px-7 text-[17px] font-bold hover:bg-[#F2C9EF]"
-            >
+            </Button>
+            <Button variant="secondary" buttonSize="large" onClick={onLogIn}>
               Log in
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -198,13 +188,10 @@ export default function LandingPage({ onGetStarted, onLogIn }: Props) {
             </h2>
             <p className="text-[17px] text-[#E9C8E6]">It takes a minute to set up.</p>
           </div>
-          <button
-            onClick={onGetStarted}
-            className="inline-flex min-h-14 cursor-pointer items-center gap-2.5 rounded-full bg-[#F2C9EF] px-7 text-[17px] font-bold text-[#3E1230] transition-colors hover:bg-[#FDF8F2]"
-          >
+          <Button variant="light" buttonSize="large" onClick={onGetStarted}>
             Create your account
             <ArrowIcon />
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -216,7 +203,9 @@ export default function LandingPage({ onGetStarted, onLogIn }: Props) {
           <span className="flex gap-5">
             <a href="#features" className="underline">Features</a>
             <a href="#how" className="underline">How it works</a>
-            <button onClick={onLogIn} className="cursor-pointer underline">Log in</button>
+            <Button variant="link" onClick={onLogIn}>
+              Log in
+            </Button>
           </span>
         </div>
       </footer>

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import "../SignUp.css";
+import "../styles/SignUp.css";
+import Button from "../components/Button";
+import InputField from "../components/InputField";
 import { signInAccount, signUpAccount, type AuthUser } from "../lib/api";
 
 interface Props {
@@ -52,56 +54,39 @@ export default function SignUp({ onSuccess, onShowLogin, onBack }: Props) {
   }
 
   return (
-    // TODO(style): centered card / container
     <div className="signup-container">
       <div className="signup-left">
         <h2 className="signup-title">Sign up</h2>
 
         <form onSubmit={handleSignUp}>
-          <label htmlFor="signup-FirstName" className="signup-label">
-            First Name
-          </label>
-
-          <input
+          <InputField
             id="signup-FirstName"
+            label="First Name"
             type="text"
-            className="signup-input"
             value={FName}
             onChange={(e) => SetFName(e.target.value)}
           />
 
-          <label htmlFor="signup-LastName" className="signup-label">
-            Last Name
-          </label>
-
-          <input
+          <InputField
             id="signup-LastName"
+            label="Last Name"
             type="text"
-            className="signup-input"
             value={LName}
             onChange={(e) => setLName(e.target.value)}
           />
 
-          <label htmlFor="signup-email" className="signup-label">
-            Email
-          </label>
-
-          <input
+          <InputField
             id="signup-email"
+            label="Email"
             type="email"
-            className="signup-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <label htmlFor="signup-password" className="signup-label">
-            Password
-          </label>
-
-          <input
+          <InputField
             id="signup-password"
+            label="Password"
             type="password"
-            className="signup-input"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
           />
@@ -112,10 +97,9 @@ export default function SignUp({ onSuccess, onShowLogin, onBack }: Props) {
             </p>
           )}
 
-          <button type="submit" className="signup-button" disabled={loading}>
+          <Button type="submit" showArrow disabled={loading}>
             {loading ? "Creating account..." : "Sign up"}
-            <span className="signup-arrow">↗</span>
-          </button>
+          </Button>
 
           <p className="auth-switch">
             Already have an account?{" "}
