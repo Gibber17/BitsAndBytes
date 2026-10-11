@@ -1,21 +1,28 @@
 import { useState } from "react";
 import "./Login.css";
+import { signInAccount, type AuthUser } from "../lib/api";
 
-export default function Login() {
+interface Props {
+  onSuccess: (user: AuthUser) => void;
+  onShowSignup: () => void;
+}
+
+export default function Login({ onSuccess, onShowSignup }: Props) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin(e: React.FormEvent<HTMLFormElement>){
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    if(email.trim() === ""){
-      alert("Enter your email.");
-      return;
-    }
-
-    if(pass.trim() === ""){
-      alert("Enter your password.");
-      return;
+    setError("");
+    setLoading(true);
+    try {
+      onSuccess(await signInAccount(email, pass));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't sign in.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -55,11 +62,14 @@ export default function Login() {
           value={pass}
           onChange={(e) => setPass(e.target.value)} />
 
-          {/* TODO(auth): connect to real login */}
-          <button type="submit" className="login-button">
-            Login
+          {error && <p role="alert" className="auth-error">{error}</p>}
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Signing in..." : "Login"}
             <span className="login-arrow">↗</span>
           </button>
+          <p className="auth-switch">
+            Don&apos;t have an account? <button type="button" onClick={onShowSignup}>Sign up</button>
+          </p>
       </form>
     </div>
   </div>

@@ -1,30 +1,42 @@
 import { useState } from "react";
 import "../SignUp.css";
+import { signInAccount, signUpAccount, type AuthUser } from "../lib/api";
 
-export default function SignUp() {
+interface Props {
+  onSuccess: (user: AuthUser) => void;
+  onShowLogin: () => void;
+}
+
+export default function SignUp({ onSuccess, onShowLogin }: Props) {
   const [FName, SetFName] = useState("");
   const [LName, setLName] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSignUp(e: React.FormEvent<HTMLFormElement>){
+  async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-  
-    if(FName.trim() === "" || LName.trim() === ""){
-      alert("Enter your first and last name.");
+    setError("");
+    if (pass.length < 8) {
+      setError("Password needs to be at least 8 characters.");
       return;
     }
 
-    if(email.trim() === ""){
-      alert("Enter your email");
-      return;
+    setLoading(true);
+    try {
+      await signUpAccount({
+        first_name: FName.trim(),
+        last_name: LName.trim(),
+        email: email.trim(),
+        password: pass,
+      });
+      onSuccess(await signInAccount(email.trim(), pass));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't create your account.");
+    } finally {
+      setLoading(false);
     }
-
-    if(pass.length < 8){
-      alert("Password needs to be at least 8 characters");
-      return;
-    }
-
   }
 
   return (
@@ -90,11 +102,14 @@ export default function SignUp() {
           value={pass}
           onChange={(e) => setPass(e.target.value)} />
 
-          {/* TODO(auth): connect to real sign up */}
-          <button type="submit" className="signup-button">
-            Sign up
+          {error && <p role="alert" className="auth-error">{error}</p>}
+          <button type="submit" className="signup-button" disabled={loading}>
+            {loading ? "Creating account..." : "Sign up"}
             <span className="signup-arrow">↗</span>
           </button>
+          <p className="auth-switch">
+            Already have an account? <button type="button" onClick={onShowLogin}>Log in</button>
+          </p>
       </form>
     </div>
 

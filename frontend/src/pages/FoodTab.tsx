@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { searchFood, type Place } from "../lib/api";
+import {
+  getSavedRestaurants,
+  removeSavedRestaurant,
+  saveRestaurant,
+  searchFood,
+  type Place,
+  type SavedRestaurant,
+} from "../lib/api";
 
 const ZIP_KEY = "knight.zip";
 const QUICK_CUISINES = ["Pizza", "Coffee", "Burgers", "Mexican", "Asian", "Dessert"];
@@ -21,6 +28,12 @@ function saveZip(z: string) {
   } catch {
     /* storage unavailable; fine */
   }
+}
+
+function restaurantKey(place: Place) {
+  return [place.name, place.address ?? "", place.url ?? ""]
+    .map((part) => part.trim().toLocaleLowerCase())
+    .join("|");
 }
 
 // Browser location -> ZIP code (free OpenStreetMap lookup, no API key)
@@ -102,11 +115,22 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   const [maxPrice, setMaxPrice] = useState("");
 
   const [results, setResults] = useState<Place[]>([]);
+  const [savedRestaurants, setSavedRestaurants] = useState<SavedRestaurant[]>([]);
+  const [savingKey, setSavingKey] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const requestId = useRef(0);
+
+  useEffect(() => {
+    getSavedRestaurants()
+      .then(setSavedRestaurants)
+      .catch((e: unknown) => {
+        setSaveError(e instanceof Error ? e.message : "Couldn't load saved restaurants.");
+      });
+  }, []);
 
   // 1a. A ZIP passed in from the app always wins
   useEffect(() => {
@@ -177,6 +201,26 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     const next = cuisine.toLowerCase() === c.toLowerCase() ? "" : c;
     setCuisine(next);
     setDebouncedCuisine(next); // skip the typing delay for one-tap chips
+  }
+
+  async function toggleSavedRestaurant(place: Place) {
+    const key = restaurantKey(place);
+    const existing = savedRestaurants.find((saved) => restaurantKey(saved) === key);
+    setSavingKey(key);
+    setSaveError("");
+    try {
+      if (existing) {
+        await removeSavedRestaurant(existing.id);
+        setSavedRestaurants((current) => current.filter((saved) => saved.id !== existing.id));
+      } else {
+        const saved = await saveRestaurant(place);
+        setSavedRestaurants((current) => [...current.filter((item) => item.id !== saved.id), saved]);
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Couldn't update saved restaurants.");
+    } finally {
+      setSavingKey("");
+    }
   }
 
   const showZipForm = zipState === "needed" || editingZip;
@@ -319,6 +363,8 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
         </div>
       )}
 
+      {saveError && <p role="alert" className="mb-4 max-w-[520px] text-[12.5px] text-[#9b2b43]">{saveError}</p>}
+
       {/* Empty */}
       {loaded && !loading && !error && results.length === 0 && (
         <div className="max-w-[520px] rounded-[28px] bg-[#fdf6ee] p-6 text-center">
@@ -397,6 +443,26 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
                 {p.address}
               </p>
             )}
+
+            {(() => {
+              const key = restaurantKey(p);
+              const isSaved = savedRestaurants.some((saved) => restaurantKey(saved) === key);
+              return (
+                <button
+                  type="button"
+                  onClick={() => void toggleSavedRestaurant(p)}
+                  disabled={savingKey === key}
+                  aria-pressed={isSaved}
+                  className={`mt-4 self-start rounded-full px-4 py-2 text-[11.5px] font-bold transition-colors disabled:opacity-60 ${
+                    isSaved
+                      ? "bg-[#43102f] text-white"
+                      : "border border-[#c86fb8] text-[#43102f] hover:bg-[#f0c8ec]/60"
+                  }`}
+                >
+                  {savingKey === key ? "Saving…" : isSaved ? "Saved ✓" : "Save restaurant"}
+                </button>
+              );
+            })()}
 
             <div className="mt-auto pt-4">
               <div className="flex items-center justify-between border-t border-[#f0c8ec] pt-3 text-[12px]">

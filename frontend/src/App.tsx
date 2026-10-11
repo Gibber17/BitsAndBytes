@@ -1,30 +1,65 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar, { type Tab } from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import NotesTab from "./pages/NotesTab";
+import FoodTab from "./pages/FoodTab";
 import LofiTab from "./pages/LofiTab";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import { getCurrentUser, signOutAccount, type AuthUser } from "./lib/api";
 
 type View = "app" | "landing" | "login" | "signup";
 
 function App() {
-  const [view, setView] = useState<View>("app");
+  const [view, setView] = useState<View>("landing");
   const [tab, setTab] = useState<Tab>("dashboard");
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((currentUser) => {
+        if (currentUser) {
+          setUser(currentUser);
+          setView("app");
+        }
+      })
+      .catch(() => {
+        // A missing or expired local session simply leaves the user on the landing page.
+      });
+  }, []);
+
+  function handleAuthSuccess(authenticatedUser: AuthUser) {
+    setUser(authenticatedUser);
+    setView("app");
+  }
+
+  async function handleLogout() {
+    try {
+      await signOutAccount();
+    } finally {
+      setUser(null);
+      setView("landing");
+      setTab("dashboard");
+    }
+  }
 
   // Auth & Landing screens rendered without sidebar
   if (view === "landing") {
     return (
       <Landing
-        onGetStarted={() => setView("app")}
+        onGetStarted={() => setView("signup")}
         onLogIn={() => setView("login")}
       />
     );
   }
 
-  if (view === "login") return <Login />;
-  if (view === "signup") return <SignUp />;
+  if (view === "login") {
+    return <Login onSuccess={handleAuthSuccess} onShowSignup={() => setView("signup")} />;
+  }
+  if (view === "signup") {
+    return <SignUp onSuccess={handleAuthSuccess} onShowLogin={() => setView("login")} />;
+  }
 
   // Main application view with Sidebar
   return (
@@ -32,8 +67,9 @@ function App() {
       <Sidebar
         active={tab}
         onNavigate={setTab}
-        userName="Nora"
-        userEmail="nora@example.com"
+        userName={user?.first_name || user?.email || "Student"}
+        userEmail={user?.email}
+        onLogout={handleLogout}
       />
 
       <main className="min-w-0 flex-[999_1_560px]">
@@ -42,13 +78,12 @@ function App() {
             onOpenNotes={() => setTab("notes")}
             onOpenFood={() => setTab("food")}
             onOpenLofi={() => setTab("lofi")}
+            user={user}
           />
         )}
         {tab === "notes" && <NotesTab />}
         {tab === "lofi" && <LofiTab />}
-        {tab === "food" && (
-          <p className="p-10 text-[#3E1230]">Map coming soon.</p>
-        )}
+        {tab === "food" && <FoodTab />}
       </main>
     </div>
   );

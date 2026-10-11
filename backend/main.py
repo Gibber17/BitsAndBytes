@@ -1,6 +1,8 @@
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()  # Load API keys before importing services.
+load_dotenv(Path(__file__).resolve().parent / ".env")  # Load backend keys before importing services.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,8 +16,8 @@ app = FastAPI(title="StudyFuel API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
 )
 

@@ -14,6 +14,7 @@ interface Props {
   onNavigate: (tab: Tab) => void;
   userName?: string;
   userEmail?: string;
+  onLogout: () => void;
 }
 
 const LINKS: { tab: Tab; label: string; icon: ReactNode }[] = [
@@ -63,7 +64,7 @@ const LINKS: { tab: Tab; label: string; icon: ReactNode }[] = [
   },
 ];
 
-export default function Sidebar({ active, onNavigate, userName, userEmail }: Props) {
+export default function Sidebar({ active, onNavigate, userName, userEmail, onLogout }: Props) {
   return (
     <nav
       aria-label="Main"
@@ -105,14 +106,21 @@ export default function Sidebar({ active, onNavigate, userName, userEmail }: Pro
       </ul>
 
       {userName && (
-        <div className="mt-auto hidden items-center gap-3 rounded-[18px] bg-[#F7DCF9] p-3 text-sm sm:flex">
+        <div className="mt-auto flex items-center gap-3 rounded-[18px] bg-[#F7DCF9] p-3 text-sm">
           <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[#E2A9EE] font-bold">
             {userName.charAt(0).toUpperCase()}
           </span>
-          <span className="flex min-w-0 flex-col">
+          <span className="flex min-w-0 flex-1 flex-col">
             <strong className="truncate">{userName}</strong>
             {userEmail && <span className="truncate text-[#6B3A5C]">{userEmail}</span>}
           </span>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="cursor-pointer rounded-full px-2 py-1 text-xs font-bold hover:bg-[#F2C9EF]"
+          >
+            Log out
+          </button>
         </div>
       )}
     </nav>

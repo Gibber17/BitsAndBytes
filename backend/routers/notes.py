@@ -1,6 +1,7 @@
 import logging
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request
+from services.auth import record_note_conversion, require_authenticated_session
 from services.ai_service import convert_image_to_latex
 from services.hybrid_ocr_service import convert_page_to_markdown
 
@@ -30,7 +31,8 @@ async def _read_image(file: UploadFile) -> bytes:
 
 
 @router.post("/convert")
-async def convert_notes(file: UploadFile = File(...)):
+async def convert_notes(request: Request, file: UploadFile = File(...)):
+    await require_authenticated_session(request)
     image_bytes = await _read_image(file)
 
     try:
@@ -52,6 +54,8 @@ async def convert_notes(file: UploadFile = File(...)):
             detail="Handwritten page recognition failed. Check the backend log and try again.",
         ) from exc
 
+    await record_note_conversion(request, file.filename)
+
     return {
         "latex": recognized_notes,
         "filename": file.filename,
@@ -60,7 +64,8 @@ async def convert_notes(file: UploadFile = File(...)):
 
 
 @router.post("/convert-expression")
-async def convert_expression(file: UploadFile = File(...)):
+async def convert_expression(request: Request, file: UploadFile = File(...)):
+    await require_authenticated_session(request)
     image_bytes = await _read_image(file)
 
     try:
@@ -71,6 +76,8 @@ async def convert_expression(file: UploadFile = File(...)):
             status_code=502,
             detail="Note conversion failed. Please try again."
         )
+
+    await record_note_conversion(request, file.filename)
 
     return {
         "latex": latex,
