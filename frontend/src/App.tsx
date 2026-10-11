@@ -8,8 +8,11 @@ import LofiTab from "./pages/LofiTab";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import SettingsTab from "./pages/SettingsTab";
+import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from "./lib/settings";
 import { getCurrentUser, signOutAccount, type AuthUser } from "./lib/api";
 import { lofiTracks } from "./data/LofiTracks";
+import "./styles/theme.css";
 
 type View = "app" | "landing" | "login" | "signup";
 
@@ -18,6 +21,7 @@ function App() {
   const [view, setView] = useState<View>("landing");
   const [tab, setTab] = useState<Tab>("dashboard");
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [settings, setSettings] = useState<Settings>(loadSettings);
 
   // --- Global Lofi Player State ---
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -57,6 +61,26 @@ function App() {
       audio.pause();
     }
   }, [playing, currentIndex]);
+
+  // Save settings and apply text size / reduce motion to the whole page
+  useEffect(() => {
+    saveSettings(settings);
+    const root = document.documentElement;
+    root.dataset.textSize = settings.textSize;
+    root.dataset.reduceMotion = String(settings.reduceMotion);
+  }, [settings]);
+
+  // "Match device" follows the OS light/dark setting, and updates if it changes
+  const [deviceDark, setDeviceDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e: MediaQueryListEvent) => setDeviceDark(e.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+  const isDark = settings.theme === "dark" || (settings.theme === "system" && deviceDark);
 
   // Keep volume updated
   useEffect(() => {
@@ -144,7 +168,7 @@ function App() {
 
   // --- Main application view with Sidebar ---
   return (
-    <div className="flex min-h-screen flex-wrap bg-[#F7DCF9]">
+    <div className="flex min-h-screen flex-wrap bg-[#F7DCF9]" data-theme={isDark ? "dark" : "light"}>
       {/* Persistent Background Audio Element */}
       <audio
         ref={audioRef}
@@ -162,7 +186,7 @@ function App() {
       <Sidebar
         active={tab}
         onNavigate={setTab}
-        userName={user?.first_name || user?.email || "Student"}
+        userName={settings.displayName || user?.first_name || user?.email || "Student"}
         userEmail={user?.email}
         onLogout={handleLogout}
       />
@@ -196,6 +220,15 @@ function App() {
           />
         )}
         {tab === "food" && <FoodTab />}
+        {tab === "settings" && (
+          <SettingsTab
+            settings={settings}
+            onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+            onReset={() => setSettings(DEFAULT_SETTINGS)}
+            onLogOut={handleLogout}
+            email={user?.email ?? ""}
+          />
+        )}
       </main>
 
       {/* Mini player on every tab except Lofi, which has full controls */}
