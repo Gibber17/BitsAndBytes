@@ -1,72 +1,71 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 .signup-container {
-    background-color: #FCF8F1;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: space-evenly;
-    gap: 40px;
-    padding: 40px;
-    box-sizing: border-box;
+   background-color: #FCF8F1;
+   min-height: 100vh;
+   display: flex;
+   align-items: center;
+   justify-content: space-evenly;
+   gap: 40px;
+   padding: 40px;
+   box-sizing: border-box;
 }
 
 .signup-title {
-    color: #441828;
-    font-size: 72px;
-    font-weight: 400;
-    font-family: "DM Sans", sans-serif;
-    letter-spacing: -2px;
-    margin: 0 0 30px 0;
+   color: #441828;
+   font-size: 72px;
+   font-weight: 400;
+   font-family: "DM Sans", sans-serif;
+   letter-spacing: -2px;
+   margin: 0 0 30px 0;
 }
 
 .signup-label {
-    color: #441828;
-    font-family: "Proxima Nova", Arial, sans-serif;
-    font-size: 16px;
-    font-weight: 400;
-    display: block;
+   color: #441828;
+   font-family: "Proxima Nova", Arial, sans-serif;
+   font-size: 16px;
+   font-weight: 400;
+   display: block;
 }
 
-
-
 .signup-button {
-    width: 380px;
-    max-width: 100%;
-    height: 56px;
-    border: 1px solid #441828;
-    border-radius: 30px;
-    background-color: transparent;
-    color: #441828;
-    font-family: "Proxima Nova", Arial, sans-serif;
-    font-size: 20px;
-    font-weight: 400;
-    cursor: pointer;
-    margin-top: 60px;
-    position: relative;
-    box-sizing: border-box;
+   width: 380px;
+   max-width: 100%;
+   height: 56px;
+   border: 1px solid #441828;
+   border-radius: 30px;
+   background-color: transparent;
+   color: #441828;
+   font-family: "Proxima Nova", Arial, sans-serif;
+   font-size: 20px;
+   font-weight: 400;
+   cursor: pointer;
+   margin-top: 60px;
+   position: relative;
+   box-sizing: border-box;
 }
 
 .signup-arrow {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: transparent;
-    color: #441828;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
+   position: absolute;
+   right: 8px;
+   top: 50%;
+   transform: translateY(-50%);
+   background-color: transparent;
+   color: #441828;
+   width: 38px;
+   height: 38px;
+   border-radius: 50%;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 24px;
 }
 
-.signup-pink-box {
-    background-color: #F9DBFF;
-    width: 45%;
-    height: 650px;
-    border-radius: 20px;
-}
+.signup-box-image {
+   width: 45%;
+   height: 650px;
+   object-fit: cover;
+   border-radius: 20px;
+   display: block;
+ }
