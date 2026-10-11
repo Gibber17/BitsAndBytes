@@ -28,6 +28,13 @@ L.Marker.prototype.options.icon = L.icon({
   shadowSize: [41, 41],
 });
 
+const currentLocationIcon = L.divIcon({
+  className: "",
+  html: '<span style="display:block;width:20px;height:20px;border:3px solid white;border-radius:50%;background:#3478f6;box-shadow:0 1px 6px #333"></span>',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+});
+
 const ZIP_KEY = "knight.zip";
 const QUICK_CUISINES = ["Pizza", "Coffee", "Burgers", "Mexican", "Asian", "Dessert"];
 type Coordinate = { lat: number; lng: number; accuracy?: number };
@@ -74,20 +81,6 @@ function getCurrentLocation(): Promise<Coordinate> {
   });
 }
 
-function calculateDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3958.8; // Radius of the Earth in miles
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 async function fetchDrivingRoute(from: Coordinate, to: Coordinate): Promise<RouteInfo> {
   const routeUrl = new URL(
     `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}`,
@@ -121,11 +114,9 @@ function MapViewport({
 }) {
   const map = useMap();
   useEffect(() => {
-    if (!map || !L || typeof L.latLngBounds !== "function") return;
     const points = [restaurant, current]
-      .filter((point): point is Coordinate => point !== null && typeof point.lat === "number" && typeof point.lng === "number")
+      .filter((point): point is Coordinate => point !== null)
       .map((point) => [point.lat, point.lng] as [number, number]);
-
     if (points.length > 1) {
       map.fitBounds(L.latLngBounds(points), { padding: [48, 48], maxZoom: 15 });
     } else if (points.length === 1) {
@@ -213,6 +204,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   const [reloadKey, setReloadKey] = useState(0);
   const requestId = useRef(0);
   const mapRequestId = useRef(0);
+  const hasZipAtStartup = useRef(Boolean(zip || (zipProp && isZip(zipProp))));
 
   // Load the user's saved restaurants once
   useEffect(() => {
@@ -223,15 +215,25 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       });
   }, []);
 
-  // Get current location on mount
+  // A ZIP passed in from the app always wins
+  useEffect(() => {
+    if (zipProp && isZip(zipProp)) {
+      setZip(zipProp);
+      setZipState("ready");
+    }
+  }, [zipProp]);
+
+  // Show the user's position as soon as the Food tab opens. Reuse that same fix
+  // for ZIP detection and later routing so the map and route share one origin.
   useEffect(() => {
     let cancelled = false;
+    const hasZip = hasZipAtStartup.current;
     getCurrentLocation()
       .then(async (location) => {
         if (cancelled) return;
         setCurrentLocation(location);
         setLocationStatus("");
-        if (zip) return;
+        if (hasZip) return;
         try {
           const detectedZip = await detectZip(location);
           if (cancelled) return;
@@ -244,21 +246,13 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       })
       .catch(() => {
         if (cancelled) return;
-        setLocationStatus("Location unavailable.");
-        if (!zip) setZipState("needed");
+        setLocationStatus("Location unavailable. Allow location access to show your position on the map.");
+        if (!hasZip) setZipState("needed");
       });
     return () => {
       cancelled = true;
     };
-  }, [zip]);
-
-  // A ZIP passed in from the app always wins
-  useEffect(() => {
-    if (zipProp && isZip(zipProp)) {
-      setZip(zipProp);
-      setZipState("ready");
-    }
-  }, [zipProp]);
+  }, []);
 
   // Debounce the cuisine text box
   useEffect(() => {
@@ -326,23 +320,44 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   async function showPlaceOnMap(place: Place) {
     const request = ++mapRequestId.current;
     setSelectedPlace(place);
+    setCurrentLocation(null);
     setRoute(null);
     if (typeof place.lat !== "number" || typeof place.lng !== "number") {
-      setTravelStatus("This place did not include map coordinates.");
+      setTravelStatus("This place did not include map coordinates. Refresh the search and try again.");
       return;
     }
 
+    setTravelStatus("Requesting your location…");
     try {
       const current = currentLocation ?? await getCurrentLocation();
       if (request !== mapRequestId.current) return;
       setCurrentLocation(current);
+      setLocationStatus("");
+      setTravelStatus("Finding a driving route…");
       const nextRoute = await fetchDrivingRoute(current, { lat: place.lat, lng: place.lng });
       if (request !== mapRequestId.current) return;
       setRoute(nextRoute);
       setTravelStatus("");
     } catch (e) {
       if (request !== mapRequestId.current) return;
-      setTravelStatus(e instanceof Error ? e.message : "Could not calculate route.");
+      setTravelStatus(e instanceof Error ? e.message : "Could not calculate a route.");
+    }
+  }
+
+  async function adjustCurrentLocation(location: Coordinate) {
+    setCurrentLocation(location);
+    if (!selectedCoordinate) return;
+    const request = ++mapRequestId.current;
+    setRoute(null);
+    setTravelStatus("Updating driving route…");
+    try {
+      const nextRoute = await fetchDrivingRoute(location, selectedCoordinate);
+      if (request !== mapRequestId.current) return;
+      setRoute(nextRoute);
+      setTravelStatus("");
+    } catch (e) {
+      if (request !== mapRequestId.current) return;
+      setTravelStatus(e instanceof Error ? e.message : "Could not calculate a route.");
     }
   }
 
@@ -354,8 +369,8 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     ? [currentLocation.lat, currentLocation.lng]
     : firstMappedPlace
       ? [firstMappedPlace.lat!, firstMappedPlace.lng!]
-      : [28.6024, -81.2001];
-  const fallbackZoom = currentLocation || firstMappedPlace ? 14 : 12;
+      : [39.8283, -98.5795];
+  const fallbackZoom = currentLocation || firstMappedPlace ? 12 : 4;
 
   const showZipForm = zipState === "needed" || editingZip;
 
@@ -411,7 +426,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       )}
 
       {/* Interactive Leaflet Map Display */}
-      {zip && (
+      {(zip || currentLocation) && (
         <div className="mb-6 h-[400px] w-full overflow-hidden rounded-[28px] border-2 border-[#43102f] shadow-md">
           <MapContainer
             center={fallbackCenter}
@@ -429,20 +444,52 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
               fallback={fallbackCenter}
               fallbackZoom={fallbackZoom}
             />
-            {currentLocation && (
-              <Marker position={[currentLocation.lat, currentLocation.lng]}>
-                <Popup><strong>You are here</strong></Popup>
-              </Marker>
-            )}
             {selectedCoordinate && (
               <Marker position={[selectedCoordinate.lat, selectedCoordinate.lng]}>
                 <Popup><strong>{selectedPlace?.name}</strong><br />Restaurant</Popup>
+              </Marker>
+            )}
+            {currentLocation && (
+              <Marker
+                position={[currentLocation.lat, currentLocation.lng]}
+                icon={currentLocationIcon}
+                draggable
+                eventHandlers={{
+                  dragend: (event) => {
+                    const point = event.target.getLatLng();
+                    void adjustCurrentLocation({ lat: point.lat, lng: point.lng });
+                  },
+                }}
+              >
+                <Popup>Your location (drag to adjust)</Popup>
               </Marker>
             )}
             {route && (
               <Polyline positions={route.positions} pathOptions={{ color: "#155eef", weight: 5, opacity: 0.8 }} />
             )}
           </MapContainer>
+        </div>
+      )}
+      {(selectedPlace || currentLocation || locationStatus || travelStatus || route) && (
+        <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-[#fdf6ee] px-4 py-3 text-[12px]">
+          {selectedPlace && <span className="font-semibold">Map: {selectedPlace.name}</span>}
+          {locationStatus && <span className="text-[#7a4c6c]">{locationStatus}</span>}
+          {travelStatus && <span className="text-[#7a4c6c]">{travelStatus}</span>}
+          {currentLocation && (
+            <span className="text-[#7a4c6c]">
+              Blue pin: drag to correct your location
+              {currentLocation.accuracy != null && ` · GPS accuracy about ${Math.round(currentLocation.accuracy)} m`}
+            </span>
+          )}
+          {route && (
+            <span className="font-semibold text-[#155eef]">
+              Estimated drive: {Math.max(1, Math.round(route.durationSeconds / 60))} min
+              {route.distanceMeters >= 1000
+                ? ` · ${(route.distanceMeters / 1000).toFixed(1)} km`
+                : ` · ${Math.round(route.distanceMeters)} m`}
+              <span className="ml-1 font-normal text-[#7a4c6c]">(approximate, no live traffic)</span>
+            </span>
+          )}
         </div>
       )}
 
@@ -535,15 +582,71 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
               : null;
 
           return (
-            <li key={`${p.name}-${p.address ?? "unknown"}-${p.url ?? index}`} className="flex">
-              <Card
-                highlighted={Boolean(p.verifiedOffer)}
-                eyebrow={
-                  p.verifiedOffer ? (
-                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#43102f] px-3 py-1 text-[10.5px] font-bold text-white">
-                      <CheckIcon />
-                      Verified offer
-                    </span>
+            <li
+              key={`${p.name}-${p.address ?? "unknown"}-${p.url ?? index}`}
+              className={`flex flex-col rounded-[28px] border-2 bg-[#fdf6ee] p-5 ${
+                p.verifiedOffer ? "border-[#43102f]" : "border-transparent"
+              }`}
+            >
+              {/* Verified offers vs. estimated prices */}
+              {p.verifiedOffer ? (
+                <>
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#43102f] px-3 py-1 text-[10.5px] font-bold text-white">
+                    <CheckIcon />
+                    Verified offer
+                  </span>
+                  <p className="mt-3 text-[13.5px] font-semibold text-[#9b3fc4]">
+                    {p.verifiedOffer}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex w-fit items-center rounded-full border border-dashed border-[#c86fb8] px-3 py-1 text-[10.5px] font-semibold text-[#7a4c6c]">
+                    {p.price ?? "Price unavailable"}
+                  </span>
+                  {p.price && (
+                    <p className="mt-1.5 text-[10.5px] text-[#7a4c6c]">
+                      Estimated from Google&apos;s price level, not a confirmed offer.
+                    </p>
+                  )}
+                </>
+              )}
+
+              <h3 className="mt-3 text-[17px] font-semibold leading-tight">{p.name}</h3>
+
+              {p.address && (
+                <p className="mt-1.5 flex items-start gap-1.5 text-[12.5px] text-[#7a4c6c]">
+                  <PinIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-[#c86fb8]" />
+                  {p.address}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void showPlaceOnMap(p)}
+                className="mt-4 self-start rounded-full border border-[#c86fb8] px-4 py-2 text-[11.5px] font-bold text-[#43102f] hover:bg-[#f0c8ec]/60"
+              >
+                Show on map
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void toggleSavedRestaurant(p)}
+                disabled={savingKey === key}
+                aria-pressed={isSaved}
+                className={`mt-4 self-start rounded-full px-4 py-2 text-[11.5px] font-bold transition-colors disabled:opacity-60 ${
+                  isSaved
+                    ? "bg-[#43102f] text-white"
+                    : "border border-[#c86fb8] text-[#43102f] hover:bg-[#f0c8ec]/60"
+                }`}
+              >
+                {savingKey === key ? "Saving…" : isSaved ? "Saved ✓" : "Save restaurant"}
+              </button>
+
+              <div className="mt-auto pt-4">
+                <div className="flex items-center justify-between border-t border-[#f0c8ec] pt-3 text-[12px]">
+                  {p.rating != null ? (
+                    <span className="font-bold text-[#c2710c]">{p.rating}★</span>
                   ) : (
                     <span className="inline-flex w-fit items-center rounded-full border border-dashed border-[#c86fb8] px-3 py-1 text-[10.5px] font-semibold text-[#7a4c6c]">
                       {p.price ?? "Price unavailable"}
