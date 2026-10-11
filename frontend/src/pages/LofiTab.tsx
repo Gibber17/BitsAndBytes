@@ -1,4 +1,6 @@
 import { lofiTracks, type Track } from "../data/LofiTracks";
+import { useEffect, useState } from "react";
+import { lofiImages } from "../data/LofiImages";
 
 const TRACKS: Track[] = lofiTracks;
 
@@ -53,6 +55,30 @@ export default function LofiTab({
 }: LofiTabProps) {
   const volPct = Math.round(volume * 100);
 
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const songsPerPage = 6;
+
+  const totalPages = Math.ceil(TRACKS.length / songsPerPage);
+
+  const visibleTracks = TRACKS.slice(
+    (currentPage - 1) * songsPerPage,
+    currentPage * songsPerPage
+  );
+
+  const [randomImage, setRandomImage] = useState(
+    () => lofiImages[Math.floor(Math.random() * lofiImages.length)]
+  );
+
+  useEffect(() => {
+    if (lofiImages.length === 0) return;
+  
+    const newImage =
+      lofiImages[Math.floor(Math.random() * lofiImages.length)];
+  
+    setRandomImage(newImage);
+  }, [currentIndex]);
+
   return (
     <div className="min-h-full bg-[#f6d9f7] px-4 pb-10 pt-5 text-sm text-[#43102f] sm:px-[31px]">
       <h2 className="mb-2 text-[40px] font-bold leading-[1.1] tracking-tight">Lofi</h2>
@@ -70,13 +96,17 @@ export default function LofiTab({
             Tracks
           </h3>
           <ul className="flex flex-col gap-[9px]">
-            {TRACKS.map((t, i) => {
-              const active = i === currentIndex;
-              return (
+          {visibleTracks.map((t, i) => {
+            const actualIndex = (currentPage - 1) * songsPerPage + i;
+            const active = actualIndex === currentIndex;
+
+            return (
                 <li key={t.id}>
                   <button
                     aria-current={active}
-                    onClick={() => (active ? onTogglePlay() : onSelectTrack(i))}
+                    onClick={() =>
+                      active ? onTogglePlay() : onSelectTrack(actualIndex)
+                    }
                     className={`flex h-[50px] w-full items-center gap-[11px] rounded-full border pl-[7px] pr-4 text-left transition-colors ${
                       active
                         ? "border-[#43102f] bg-[#43102f] text-white"
@@ -98,14 +128,42 @@ export default function LofiTab({
               );
             })}
           </ul>
+
+          <div className="mt-4 flex items-center justify-between gap-3 text-[12px]">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => page - 1)}
+              disabled={currentPage === 1}
+              className="rounded-full border border-[#c86fbb] px-4 py-2 disabled:opacity-40"
+            >
+              ← Previous
+            </button>
+
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => page + 1)}
+              disabled={currentPage === totalPages}
+              className="rounded-full border border-[#c86fbb] px-4 py-2 disabled:opacity-40"
+            >
+              Next →
+            </button>
+          </div>
+
         </section>
 
         {/* Now playing card */}
         <section className="rounded-[28px] bg-[#fdf6ee] p-4" aria-label="Now playing">
-          {/* Album art placeholder (your Track type has no cover field yet) */}
-          <div className="grid aspect-[1.43/1] place-items-center overflow-hidden rounded-[18px] bg-[#f0c8ec] p-4 text-center text-[10px] font-semibold uppercase tracking-[.12em] text-[#7a4c6c]">
-            [Cover art — your book + tea photo]
-          </div>
+        <div className="aspect-[1.43/1] overflow-hidden rounded-[18px] bg-[#f0c8ec]">
+          <img
+            src={randomImage}
+            alt="Lo-fi album artwork"
+            className="h-full w-full object-cover"
+          />
+        </div>
 
           <p className="mt-3.5 text-[9px] font-bold tracking-[.14em] text-[#7a4c6c]">
             NOW PLAYING
