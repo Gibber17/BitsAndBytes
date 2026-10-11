@@ -9,7 +9,6 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import { getCurrentUser, signOutAccount, type AuthUser } from "./lib/api";
-import FoodTab from "./pages/FoodTab";
 import { lofiTracks } from "./data/LofiTracks";
 
 type View = "app" | "landing" | "login" | "signup";
@@ -20,6 +19,18 @@ function App() {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [user, setUser] = useState<AuthUser | null>(null);
 
+  // --- Global Lofi Player State ---
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.7);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [error, setError] = useState("");
+
+  const currentTrack = lofiTracks[currentIndex];
+
+  // Restore an existing session on first load
   useEffect(() => {
     getCurrentUser()
       .then((currentUser) => {
@@ -32,32 +43,6 @@ function App() {
         // A missing or expired local session simply leaves the user on the landing page.
       });
   }, []);
-
-  function handleAuthSuccess(authenticatedUser: AuthUser) {
-    setUser(authenticatedUser);
-    setView("app");
-  }
-
-  async function handleLogout() {
-    try {
-      await signOutAccount();
-    } finally {
-      setUser(null);
-      setView("landing");
-      setTab("dashboard");
-    }
-  }
-
-  // --- Global Lofi Player State ---
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.7);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [error, setError] = useState("");
-
-  const currentTrack = lofiTracks[currentIndex];
 
   // Start or stop playback whenever play state or track changes
   useEffect(() => {
@@ -83,6 +68,24 @@ function App() {
     setCurrentTime(0);
     setDuration(0);
   }, [currentIndex]);
+
+  // --- Auth handlers ---
+  function handleAuthSuccess(authenticatedUser: AuthUser) {
+    setUser(authenticatedUser);
+    setTab("dashboard");
+    setView("app");
+  }
+
+  async function handleLogout() {
+    try {
+      await signOutAccount();
+    } finally {
+      setPlaying(false); // the audio element unmounts on logout, so reset play state
+      setUser(null);
+      setView("landing");
+      setTab("dashboard");
+    }
+  }
 
   // --- Shared player controls (used by LofiTab and MiniPlayer) ---
   const handleSelectTrack = (i: number) => {
@@ -122,18 +125,10 @@ function App() {
   }
 
   if (view === "login") {
-    return <Login onSuccess={handleAuthSuccess} onShowSignup={() => setView("signup")} />;
-  }
-  if (view === "signup") {
-    return <SignUp onSuccess={handleAuthSuccess} onShowLogin={() => setView("login")} />;
     return (
       <Login
-        onSuccess={() => {
-          setTab("dashboard");
-          setView("app");
-        }}
-        onSwitchToSignUp={() => setView("signup")}
-        onBack={() => setView("landing")}
+        onSuccess={handleAuthSuccess}
+        onShowSignup={() => setView("signup")}
       />
     );
   }
@@ -141,12 +136,8 @@ function App() {
   if (view === "signup") {
     return (
       <SignUp
-        onSuccess={() => {
-          setTab("dashboard");
-          setView("app");
-        }}
-        onSwitchToLogin={() => setView("login")}
-        onBack={() => setView("landing")}
+        onSuccess={handleAuthSuccess}
+        onShowLogin={() => setView("login")}
       />
     );
   }
@@ -187,7 +178,6 @@ function App() {
           />
         )}
         {tab === "notes" && <NotesTab />}
-        {tab === "lofi" && <LofiTab />}
         {tab === "lofi" && (
           <LofiTab
             track={currentTrack}

@@ -7,9 +7,9 @@ import {
   type Place,
   type SavedRestaurant,
 } from "../lib/api";
-import { searchFood, type Place } from "../lib/api";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 // Leaflet marker icon fix for Vite
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -141,6 +141,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
   const [reloadKey, setReloadKey] = useState(0);
   const requestId = useRef(0);
 
+  // Load the user's saved restaurants once
   useEffect(() => {
     getSavedRestaurants()
       .then(setSavedRestaurants)
@@ -149,7 +150,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       });
   }, []);
 
-  // 1a. A ZIP passed in from the app always wins
+  // A ZIP passed in from the app always wins
   useEffect(() => {
     if (zipProp && isZip(zipProp)) {
       setZip(zipProp);
@@ -157,6 +158,7 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     }
   }, [zipProp]);
 
+  // Try to detect the ZIP from the browser's location if we don't have one
   useEffect(() => {
     if (zip) return;
     let cancelled = false;
@@ -173,13 +175,16 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Debounce the cuisine text box
   useEffect(() => {
     const t = setTimeout(() => setDebouncedCuisine(cuisine.trim()), 400);
     return () => clearTimeout(t);
   }, [cuisine]);
 
+  // Run the search
   useEffect(() => {
     if (!zip) return;
     const id = ++requestId.current;
@@ -246,7 +251,9 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       </p>
 
       {/* ZIP Selection Header */}
-      {zipState === "detecting" && <p className="mb-4 text-[12px] text-[#7a4c6c]">Finding places near you…</p>}
+      {zipState === "detecting" && (
+        <p className="mb-4 text-[12px] text-[#7a4c6c]">Finding places near you…</p>
+      )}
       {zipState === "ready" && !editingZip && (
         <p className="mb-4 flex items-center gap-1.5 text-[12px] text-[#7a4c6c]">
           <PinIcon className="h-3.5 w-3.5 text-[#c86fb8]" />
@@ -265,7 +272,10 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       )}
 
       {showZipForm && (
-        <form onSubmit={submitZip} className="mb-5 flex max-w-[520px] flex-wrap items-center gap-2 rounded-[28px] bg-[#fdf6ee] p-4">
+        <form
+          onSubmit={submitZip}
+          className="mb-5 flex max-w-[520px] flex-wrap items-center gap-2 rounded-[28px] bg-[#fdf6ee] p-4"
+        >
           <input
             value={zipDraft}
             onChange={(e) => setZipDraft(e.target.value.replace(/\D/g, ""))}
@@ -274,7 +284,11 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
             inputMode="numeric"
             className={`${inputClass} w-[120px] bg-white`}
           />
-          <button type="submit" disabled={!isZip(zipDraft)} className="h-11 rounded-full bg-[#43102f] px-6 text-[12.5px] font-bold text-white">
+          <button
+            type="submit"
+            disabled={!isZip(zipDraft)}
+            className="h-11 rounded-full bg-[#43102f] px-6 text-[12.5px] font-bold text-white disabled:opacity-60"
+          >
             Save
           </button>
         </form>
@@ -283,12 +297,17 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
       {/* Interactive Leaflet Map Display */}
       {zip && (
         <div className="mb-6 h-[400px] w-full overflow-hidden rounded-[28px] border-2 border-[#43102f] shadow-md">
-          <MapContainer center={[28.6024, -81.2001]} zoom={14} scrollWheelZoom={false} className="h-full w-full z-0">
+          <MapContainer
+            center={[28.6024, -81.2001]}
+            zoom={14}
+            scrollWheelZoom={false}
+            className="z-0 h-full w-full"
+          >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {/* Example marker for UCF / central area or map results */}
+            {/* Example marker for UCF / central area */}
             <Marker position={[28.6024, -81.2001]}>
               <Popup>
                 <div className="p-1">
@@ -301,20 +320,11 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
         </div>
       )}
 
-      {saveError && <p role="alert" className="mb-4 max-w-[520px] text-[12.5px] text-[#9b2b43]">{saveError}</p>}
-
-      {/* Empty */}
-      {loaded && !loading && !error && results.length === 0 && (
-        <div className="max-w-[520px] rounded-[28px] bg-[#fdf6ee] p-6 text-center">
-          <p className="font-semibold">No places found.</p>
-          <p className="mt-1 text-[12.5px] text-[#7a4c6c]">
-            Try clearing the cuisine or price filter, or change your ZIP code.
-          </p>
       {/* Filters */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <input
           value={cuisine}
-          onChange={(e) => CasingHandler(e.target.value)}
+          onChange={(e) => setCuisine(e.target.value)}
           placeholder="Filter by cuisine (optional)"
           className={`${inputClass} w-[230px]`}
         />
@@ -326,7 +336,8 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
           >
             <option value="">Any price</option>
             <option value="1">$</option>
-            <option value="2">$$</option>             <option value="3">$$$</option>
+            <option value="2">$$</option>
+            <option value="3">$$$</option>
           </select>
           <ChevronIcon className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7a4c6c]" />
         </div>
@@ -340,7 +351,9 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
               key={c}
               onClick={() => pickCuisine(c)}
               className={`h-8 rounded-full border px-4 text-[11.5px] font-bold transition-colors ${
-                active ? "border-[#43102f] bg-[#43102f] text-white" : "border-[#c86fb8] hover:bg-[#f0c8ec]/60"
+                active
+                  ? "border-[#43102f] bg-[#43102f] text-white"
+                  : "border-[#c86fb8] hover:bg-[#f0c8ec]/60"
               }`}
             >
               {c}
@@ -349,99 +362,123 @@ export default function FoodTab({ zip: zipProp }: { zip?: string }) {
         })}
       </div>
 
+      {saveError && (
+        <p role="alert" className="mb-4 max-w-[520px] text-[12.5px] text-[#9b2b43]">
+          {saveError}
+        </p>
+      )}
+
+      {/* Loading */}
+      {loading && <p className="mb-4 text-[12px] text-[#7a4c6c]">Searching…</p>}
+
+      {/* Error */}
+      {error && !loading && (
+        <div role="alert" className="mb-4 max-w-[520px] rounded-[28px] bg-[#fdf6ee] p-5">
+          <p className="font-semibold">Couldn&apos;t load places.</p>
+          <p className="mt-1 text-[12.5px] text-[#7a4c6c]">{error}</p>
+          <button
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="mt-3 h-9 rounded-full bg-[#43102f] px-5 text-[12px] font-bold text-white"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Empty */}
+      {loaded && !loading && !error && results.length === 0 && (
+        <div className="max-w-[520px] rounded-[28px] bg-[#fdf6ee] p-6 text-center">
+          <p className="font-semibold">No places found.</p>
+          <p className="mt-1 text-[12.5px] text-[#7a4c6c]">
+            Try clearing the cuisine or price filter, or change your ZIP code.
+          </p>
+        </div>
+      )}
+
       {/* Results Grid */}
       <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {results.map((p, index) => (
-          <li
-            key={`${p.name}-${p.address ?? "unknown"}-${p.url ?? index}`}
-            className={`flex flex-col rounded-[28px] border-2 bg-[#fdf6ee] p-5 ${
-              p.verifiedOffer ? "border-[#43102f]" : "border-transparent"
-            }`}
-          >
-            {/* Verified offers vs. estimated prices */}
-            {p.verifiedOffer ? (
-              <>
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#43102f] px-3 py-1 text-[10.5px] font-bold text-white">
-                  <CheckIcon />
-                  Verified offer
-                </span>
-                <p className="mt-3 text-[13.5px] font-semibold text-[#9b3fc4]">
-                  {p.verifiedOffer}
-                </p>
-              </>
-            ) : (
-              <>
-                <span className="inline-flex w-fit items-center rounded-full border border-dashed border-[#c86fb8] px-3 py-1 text-[10.5px] font-semibold text-[#7a4c6c]">
-                  {p.price ?? "Price unavailable"}
-                </span>
-                {p.price && (
-                  <p className="mt-1.5 text-[10.5px] text-[#7a4c6c]">
-                    Estimated from Google&apos;s price level, not a confirmed offer.
+        {results.map((p, index) => {
+          const key = restaurantKey(p);
+          const isSaved = savedRestaurants.some((saved) => restaurantKey(saved) === key);
+
+          return (
+            <li
+              key={`${p.name}-${p.address ?? "unknown"}-${p.url ?? index}`}
+              className={`flex flex-col rounded-[28px] border-2 bg-[#fdf6ee] p-5 ${
+                p.verifiedOffer ? "border-[#43102f]" : "border-transparent"
+              }`}
+            >
+              {/* Verified offers vs. estimated prices */}
+              {p.verifiedOffer ? (
+                <>
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#43102f] px-3 py-1 text-[10.5px] font-bold text-white">
+                    <CheckIcon />
+                    Verified offer
+                  </span>
+                  <p className="mt-3 text-[13.5px] font-semibold text-[#9b3fc4]">
+                    {p.verifiedOffer}
                   </p>
-                )}
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex w-fit items-center rounded-full border border-dashed border-[#c86fb8] px-3 py-1 text-[10.5px] font-semibold text-[#7a4c6c]">
+                    {p.price ?? "Price unavailable"}
+                  </span>
+                  {p.price && (
+                    <p className="mt-1.5 text-[10.5px] text-[#7a4c6c]">
+                      Estimated from Google&apos;s price level, not a confirmed offer.
+                    </p>
+                  )}
+                </>
+              )}
 
-            <h3 className="mt-3 text-[17px] font-semibold leading-tight">{p.name}</h3>
+              <h3 className="mt-3 text-[17px] font-semibold leading-tight">{p.name}</h3>
 
-            {p.address && (
-              <p className="mt-1.5 flex items-start gap-1.5 text-[12.5px] text-[#7a4c6c]">
-                <PinIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-[#c86fb8]" />
-                {p.address}
-              </p>
-            )}
+              {p.address && (
+                <p className="mt-1.5 flex items-start gap-1.5 text-[12.5px] text-[#7a4c6c]">
+                  <PinIcon className="mt-0.5 h-3.5 w-3.5 flex-none text-[#c86fb8]" />
+                  {p.address}
+                </p>
+              )}
 
-            {(() => {
-              const key = restaurantKey(p);
-              const isSaved = savedRestaurants.some((saved) => restaurantKey(saved) === key);
-              return (
-                <button
-                  type="button"
-                  onClick={() => void toggleSavedRestaurant(p)}
-                  disabled={savingKey === key}
-                  aria-pressed={isSaved}
-                  className={`mt-4 self-start rounded-full px-4 py-2 text-[11.5px] font-bold transition-colors disabled:opacity-60 ${
-                    isSaved
-                      ? "bg-[#43102f] text-white"
-                      : "border border-[#c86fb8] text-[#43102f] hover:bg-[#f0c8ec]/60"
-                  }`}
-                >
-                  {savingKey === key ? "Saving…" : isSaved ? "Saved ✓" : "Save restaurant"}
-                </button>
-              );
-            })()}
+              <button
+                type="button"
+                onClick={() => void toggleSavedRestaurant(p)}
+                disabled={savingKey === key}
+                aria-pressed={isSaved}
+                className={`mt-4 self-start rounded-full px-4 py-2 text-[11.5px] font-bold transition-colors disabled:opacity-60 ${
+                  isSaved
+                    ? "bg-[#43102f] text-white"
+                    : "border border-[#c86fb8] text-[#43102f] hover:bg-[#f0c8ec]/60"
+                }`}
+              >
+                {savingKey === key ? "Saving…" : isSaved ? "Saved ✓" : "Save restaurant"}
+              </button>
 
-            <div className="mt-auto pt-4">
-              <div className="flex items-center justify-between border-t border-[#f0c8ec] pt-3 text-[12px]">
-                {p.rating != null ? (
-                  <span className="font-bold text-[#c2710c]">{p.rating}★</span>
-                ) : (
-                  <span className="text-[#7a4c6c]">No rating</span>
-                )}
-                {p.url && (
-                  <a
-                    className="inline-flex items-center gap-1.5 font-bold text-[#9b3fc4] underline-offset-2 hover:underline"
-                    href={p.url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View menu / offer
-                    <ExternalIcon />
-                  </a>
-                )}
+              <div className="mt-auto pt-4">
+                <div className="flex items-center justify-between border-t border-[#f0c8ec] pt-3 text-[12px]">
+                  {p.rating != null ? (
+                    <span className="font-bold text-[#c2710c]">{p.rating}★</span>
+                  ) : (
+                    <span className="text-[#7a4c6c]">No rating</span>
+                  )}
+                  {p.url && (
+                    <a
+                      className="inline-flex items-center gap-1.5 font-bold text-[#9b3fc4] underline-offset-2 hover:underline"
+                      href={p.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View menu / offer
+                      <ExternalIcon />
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-          <li key={`${p.name}-${index}`} className="flex flex-col rounded-[28px] border-2 border-transparent bg-[#fdf6ee] p-5">
-            <h3 className="text-[17px] font-semibold leading-tight">{p.name}</h3>
-            {p.address && <p className="mt-1.5 text-[12.5px] text-[#7a4c6c]">{p.address}</p>}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
-}
-  
-  function CasingHandler(val: string) {
-    setCuisine(val);
-  }
 }

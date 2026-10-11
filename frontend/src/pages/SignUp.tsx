@@ -5,16 +5,10 @@ import { signInAccount, signUpAccount, type AuthUser } from "../lib/api";
 interface Props {
   onSuccess: (user: AuthUser) => void;
   onShowLogin: () => void;
-}
-
-export default function SignUp({ onSuccess, onShowLogin }: Props) {
-interface SignUpProps {
-  onSuccess?: () => void;
-  onSwitchToLogin?: () => void;
   onBack?: () => void;
 }
 
-export default function SignUp({ onSuccess, onSwitchToLogin, onBack }: SignUpProps) {
+export default function SignUp({ onSuccess, onShowLogin, onBack }: Props) {
   const [FName, SetFName] = useState("");
   const [LName, setLName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,6 +19,17 @@ export default function SignUp({ onSuccess, onSwitchToLogin, onBack }: SignUpPro
   async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+
+    if (FName.trim() === "" || LName.trim() === "") {
+      setError("Enter your first and last name.");
+      return;
+    }
+
+    if (email.trim() === "") {
+      setError("Enter your email.");
+      return;
+    }
+
     if (pass.length < 8) {
       setError("Password needs to be at least 8 characters.");
       return;
@@ -39,31 +44,11 @@ export default function SignUp({ onSuccess, onSwitchToLogin, onBack }: SignUpPro
         password: pass,
       });
       onSuccess(await signInAccount(email.trim(), pass));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't create your account.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't create your account.");
     } finally {
       setLoading(false);
     }
-  function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    if (FName.trim() === "" || LName.trim() === "") {
-      alert("Enter your first and last name.");
-      return;
-    }
-
-    if (email.trim() === "") {
-      alert("Enter your email");
-      return;
-    }
-
-    if (pass.length < 8) {
-      alert("Password needs to be at least 8 characters");
-      return;
-    }
-
-    // TODO(auth): create the account with a real sign up before continuing
-    onSuccess?.();
   }
 
   return (
@@ -121,35 +106,30 @@ export default function SignUp({ onSuccess, onSwitchToLogin, onBack }: SignUpPro
             onChange={(e) => setPass(e.target.value)}
           />
 
-          {error && <p role="alert" className="auth-error">{error}</p>}
+          {error && (
+            <p role="alert" className="auth-error">
+              {error}
+            </p>
+          )}
+
           <button type="submit" className="signup-button" disabled={loading}>
             {loading ? "Creating account..." : "Sign up"}
             <span className="signup-arrow">↗</span>
           </button>
+
           <p className="auth-switch">
-            Already have an account? <button type="button" onClick={onShowLogin}>Log in</button>
+            Already have an account?{" "}
+            <button type="button" onClick={onShowLogin}>
+              Log in
+            </button>
           </p>
-      </form>
-    </div>
         </form>
 
-        <p style={{ marginTop: 16, fontSize: 14 }}>
-          Already have an account?{" "}
-          <button
-            type="button"
-            onClick={onSwitchToLogin}
-            style={{ textDecoration: "underline", cursor: "pointer", fontWeight: 700 }}
-          >
-            Log in
+        {onBack && (
+          <button type="button" className="auth-switch" onClick={onBack}>
+            ← Back to home
           </button>
-        </p>
-        <button
-          type="button"
-          onClick={onBack}
-          style={{ marginTop: 8, fontSize: 14, textDecoration: "underline", cursor: "pointer" }}
-        >
-          ← Back to home
-        </button>
+        )}
       </div>
 
       <div className="signup-pink-box"></div>
