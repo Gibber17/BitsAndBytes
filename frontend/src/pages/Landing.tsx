@@ -212,7 +212,7 @@ export default function LandingPage({ onGetStarted, onLogIn }: Props) {
       <footer className="border-t-[1.5px] border-[#EBC4E4] bg-[#FDF8F2]">
         <div className="mx-auto flex max-w-[1184px] flex-wrap justify-between gap-3 px-4 py-6 text-sm text-[#6B3A5C] sm:px-8">
           {/* TODO(content): add your team or club name */}
-          <span>© 2026 Knight Study Space · [TEAM / CLUB NAME]</span>
+          <span>© 2026 Knight Study Space · [Bits & Bytes]</span>
           <span className="flex gap-5">
             <a href="#features" className="underline">Features</a>
             <a href="#how" className="underline">How it works</a>
