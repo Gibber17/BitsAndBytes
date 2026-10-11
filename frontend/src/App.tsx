@@ -3,14 +3,38 @@ import Sidebar, { type Tab } from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import NotesTab from "./pages/NotesTab";
 import LofiTab from "./pages/LofiTab";
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
+
+type View = "app" | "landing" | "login" | "signup";
 
 function App() {
-  // Which page is showing. "dashboard" means you land on the dashboard first.
+  const [view, setView] = useState<View>("app");
   const [tab, setTab] = useState<Tab>("dashboard");
 
+  // Auth & Landing screens rendered without sidebar
+  if (view === "landing") {
+    return (
+      <Landing
+        onGetStarted={() => setView("app")}
+        onLogIn={() => setView("login")}
+      />
+    );
+  }
+
+  if (view === "login") return <Login />;
+  if (view === "signup") return <SignUp />;
+
+  // Main application view with Sidebar
   return (
     <div className="flex min-h-screen flex-wrap bg-[#F7DCF9]">
-      <Sidebar active={tab} onNavigate={setTab} userName="Nora" userEmail="[SCHOOL EMAIL]" />
+      <Sidebar
+        active={tab}
+        onNavigate={setTab}
+        userName="Nora"
+        userEmail="nora@example.com"
+      />
 
       <main className="min-w-0 flex-[999_1_560px]">
         {tab === "dashboard" && (
@@ -23,7 +47,6 @@ function App() {
         {tab === "notes" && <NotesTab />}
         {tab === "lofi" && <LofiTab />}
         {tab === "food" && (
-          // TODO: replace with the map page once it exists
           <p className="p-10 text-[#3E1230]">Map coming soon.</p>
         )}
       </main>
